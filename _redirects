@@ -1,0 +1,11 @@
+# /invite/KODE — bevarer URL slik at JS kan lese kode fra path
+/invite/*    /invite/index.html   200
+
+# Kort-form alias /r/KODE → /invite/KODE
+/r/*    /invite/:splat    301
+
+# Clean URLs for legal-pages (eksisterende konvensjon)
+/personvern    /personvern.html    200
+/vilkar        /vilkar.html        200
+/refund        /refund.html        200
+/support       /support.html       200
