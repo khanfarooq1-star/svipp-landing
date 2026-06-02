@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Du er invitert til Svipp</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, sans-serif; background: #FFF8F6; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+    .kort { background: white; border-radius: 20px; padding: 40px 32px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .logo { font-size: 32px; font-weight: 900; letter-spacing: -1px; color: #FF5C3A; margin-bottom: 24px; }
+    h1 { font-size: 22px; font-weight: 800; color: #0A0A0A; margin-bottom: 12px; letter-spacing: -0.4px; }
+    p { font-size: 15px; color: #71717A; line-height: 1.6; margin-bottom: 32px; }
+    .knapp { display: block; background: #FF5C3A; color: white; text-decoration: none; padding: 16px 24px; border-radius: 14px; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .hopp { display: block; margin-top: 16px; font-size: 13px; color: #A1A1AA; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="kort">
+    <div class="logo">svipp</div>
+    <h1>Du er invitert!</h1>
+    <p>En venn har invitert deg til Svipp — søk jobb på 30 sekunder med AI-generert søknadsbrev.</p>
+    <a href="https://apps.apple.com/no/app/svipp/id6765740587" class="knapp" id="app-store-link">Last ned Svipp</a>
+    <a href="/" class="hopp">Lær mer om Svipp</a>
+  </div>
+  <script>
+    // Les kode fra URL-path: /invite/ABC123
+    const deler = window.location.pathname.split('/');
+    const kode = deler[deler.length - 1];
+    if (kode && kode !== 'invite') {
+      // Lagre koden i localStorage (leses av appen etter installasjon)
+      try { localStorage.setItem('svipp_pending_referral', kode); } catch(e) {}
+      // Kall backend for tracking (fire-and-forget)
+      fetch('https://svipp-app-production-62e8.up.railway.app/api/referrals/spor-registrering', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kode })
+      }).catch(() => {});
+    }
+  </script>
+</body>
+</html>
