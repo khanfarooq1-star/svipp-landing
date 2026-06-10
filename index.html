@@ -20,9 +20,9 @@
 </style>
 <style>
 :root {
-  --coral:       #FF5C3A;
-  --coral-dark:  #e04928;
-  --coral-tint:  #fff2ef;
+  --coral:       #185FA5;
+  --coral-dark:  #124B82;
+  --coral-tint:  #E6F1FB;
   --ink:         #111111;
   --ink-2:       #333333;
   --muted:       #6f6f6f;
@@ -82,8 +82,8 @@ nav {
   content: '';
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse 900px 500px at 50% -5%, rgba(255,92,58,.09) 0%, transparent 70%),
-    radial-gradient(ellipse 350px 350px at 80% 85%, rgba(255,92,58,.05) 0%, transparent 60%);
+    radial-gradient(ellipse 900px 500px at 50% -5%, rgba(24,95,165,.09) 0%, transparent 70%),
+    radial-gradient(ellipse 350px 350px at 80% 85%, rgba(24,95,165,.05) 0%, transparent 60%);
   pointer-events: none;
 }
 .badge {
@@ -91,7 +91,7 @@ nav {
   background: var(--coral-tint); color: var(--coral);
   font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
   padding: 6px 14px; border-radius: 100px; margin-bottom: 32px;
-  border: 1px solid rgba(255,92,58,.15);
+  border: 1px solid rgba(24,95,165,.15);
 }
 .badge-dot {
   width: 6px; height: 6px; border-radius: 50%;
@@ -178,7 +178,7 @@ section { padding: 104px 24px; }
 }
 .step:hover {
   box-shadow: 0 6px 28px rgba(0,0,0,.07);
-  border-color: rgba(255,92,58,.2);
+  border-color: rgba(24,95,165,.2);
 }
 .step-num {
   font-size: 11px; font-weight: 800; letter-spacing: .1em;
@@ -227,7 +227,7 @@ tbody tr { border-bottom: 1px solid var(--line); }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: var(--surface); }
 tbody td { padding: 14px 24px; font-size: 14px; color: var(--ink-2); font-weight: 500; }
-tbody td.hl { background: rgba(255,92,58,.04); font-weight: 700; color: var(--ink); }
+tbody td.hl { background: rgba(24,95,165,.04); font-weight: 700; color: var(--ink); }
 .pos { color: var(--coral); font-weight: 800; }
 .neg { color: #ccc; font-weight: 800; }
 
@@ -237,7 +237,7 @@ tbody td.hl { background: rgba(255,92,58,.04); font-weight: 700; color: var(--in
   background: var(--bg); border: 1.5px solid var(--line);
   border-radius: var(--radius); padding: 32px 24px 36px; position: relative;
 }
-.plan.featured { border-color: var(--coral); box-shadow: 0 0 0 4px rgba(255,92,58,.07); }
+.plan.featured { border-color: var(--coral); box-shadow: 0 0 0 4px rgba(24,95,165,.07); }
 .plan-badge {
   position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
   background: var(--coral); color: #fff;
@@ -304,7 +304,7 @@ tbody td.hl { background: rgba(255,92,58,.04); font-weight: 700; color: var(--in
 .cta-band::before {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse 600px 400px at 50% 110%, rgba(255,92,58,.18) 0%, transparent 65%);
+  background: radial-gradient(ellipse 600px 400px at 50% 110%, rgba(24,95,165,.18) 0%, transparent 65%);
   pointer-events: none;
 }
 .cta-band h2 {
