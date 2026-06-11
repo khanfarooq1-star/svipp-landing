@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["HP785SRQ95.no.svipp.app"],
+        "components": [
+          {
+            "/": "/invite/*",
+            "comment": "Referral-invitasjonslenker apner Svipp-appen"
+          }
+        ]
+      }
+    ]
+  }
+}
