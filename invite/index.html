@@ -4,15 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Du er invitert til Svipp</title>
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <style>
+    /* SVIPP BRAND TOKENS — se /docs/design-system.md (autoritativ kilde)
+       RØD = HANDLING/MERKEVARE · GRAFITT = SYSTEMHANDLING · GRÅ = SEKUNDÆR */
+    :root {
+      --brand-primary:  #FA2D48;  /* logo / merkevare */
+      --action-bg:      #1D1D1F;  /* systemhandling «Last ned» — grafitt, ikke rød */
+      --action-text:    #FFFFFF;
+      --text-primary:   #1D1D1F;
+      --text-secondary: #86868B;
+      --bg-primary:     #FFFFFF;
+      --bg-secondary:   #F5F5F7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand-primary:  #FA2D48;
+        --action-bg:      #F5F5F7;
+        --action-text:    #1D1D1F;
+        --text-primary:   #F5F5F7;
+        --text-secondary: #98989D;
+        --bg-primary:     #1C1C1E;
+        --bg-secondary:   #000000;
+      }
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, sans-serif; background: #F4F8FC; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
-    .kort { background: white; border-radius: 20px; padding: 40px 32px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .logo { font-size: 32px; font-weight: 900; letter-spacing: -1px; color: #185FA5; margin-bottom: 24px; }
-    h1 { font-size: 22px; font-weight: 800; color: #0A0A0A; margin-bottom: 12px; letter-spacing: -0.4px; }
-    p { font-size: 15px; color: #71717A; line-height: 1.6; margin-bottom: 32px; }
-    .knapp { display: block; background: #185FA5; color: white; text-decoration: none; padding: 16px 24px; border-radius: 14px; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
-    .hopp { display: block; margin-top: 16px; font-size: 13px; color: #A1A1AA; text-decoration: none; }
+    body { font-family: -apple-system, sans-serif; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+    .kort { background: var(--bg-primary); border-radius: 20px; padding: 40px 32px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .logo { font-size: 32px; font-weight: 900; letter-spacing: -1px; color: var(--brand-primary); margin-bottom: 24px; }
+    h1 { font-size: 22px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; letter-spacing: -0.4px; }
+    p { font-size: 15px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 32px; }
+    .knapp { display: block; background: var(--action-bg); color: var(--action-text); text-decoration: none; padding: 16px 24px; border-radius: 14px; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .hopp { display: block; margin-top: 16px; font-size: 13px; color: var(--text-secondary); text-decoration: none; }
   </style>
   <meta property="og:title" content="Bli med på Svipp">
   <meta property="og:description" content="Søk jobb på 30 sekunder. Sveip, AI skriver søknaden, sendt med bekreftelse.">

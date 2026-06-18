@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- SVIPP favicon — brandPrimary #FA2D48 (RØD = HANDLING + MERKEVARE) -->
+  <rect width="64" height="64" rx="15" fill="#FA2D48"/>
+  <g transform="translate(13,26) rotate(-20 19 6)">
+    <rect x="0"  y="0" width="26" height="7" rx="3.5" fill="#FFFFFF"/>
+    <rect x="17" y="0" width="26" height="7" rx="3.5" fill="#FFFFFF" fill-opacity="0.45"/>
+  </g>
+</svg>
