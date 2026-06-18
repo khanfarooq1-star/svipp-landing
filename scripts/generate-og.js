@@ -1,20 +1,21 @@
 // Genererer og-image.png (1200x630) for deling pa sosiale medier.
 // Kjor: node scripts/generate-og.js   (krever sharp som dependency)
-// Farge MA matche --coral i index.html (#185FA5).
+// Farge MA matche --brand-primary i index.html (#FA2D48).
+// Se /docs/design-system.md for autoritativ token-kilde.
 const sharp = require('sharp');
 const path = require('path');
 
 const W = 1200, H = 630;
-const BLUE = '#185FA5';
-const BLUE_DARK = '#124B82';
-const TINT = '#E6F1FB';
-const TINT_TEXT = '#0C447C';
-const LIGHT = '#B5D4F4';
+const BRAND = '#FA2D48';       // brandPrimary — RØD = HANDLING + MERKEVARE
+const BRAND_DARK = '#C11A33';  // mørkere brand for dybde
+const TINT = '#FFE9EC';        // avledet lys brand-tint
+const TINT_TEXT = '#A11328';   // mørk brand-tekst pa tint
+const LIGHT = '#FCB4BF';       // lys brand for stottelinje
 const WHITE = '#FFFFFF';
 
 const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <rect width="${W}" height="${H}" fill="${BLUE}"/>
+  <rect width="${W}" height="${H}" fill="${BRAND}"/>
 
   <!-- logo: to skrastreker + ordmerke -->
   <g transform="translate(110,92)">
@@ -35,8 +36,8 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
   <!-- app-kort-hint, stikker inn fra hoyre, lett rotert -->
   <g transform="translate(905,355) rotate(8)">
     <rect x="0" y="0" width="300" height="380" rx="22" fill="${WHITE}"/>
-    <rect x="0" y="0" width="300" height="130" rx="22" fill="${BLUE_DARK}"/>
-    <rect x="0" y="100" width="300" height="30" fill="${BLUE_DARK}"/>
+    <rect x="0" y="0" width="300" height="130" rx="22" fill="${BRAND_DARK}"/>
+    <rect x="0" y="100" width="300" height="30" fill="${BRAND_DARK}"/>
     <rect x="26" y="104" width="46" height="46" rx="11" fill="${TINT}"/>
     <rect x="26" y="172" width="74" height="26" rx="13" fill="${TINT}"/>
     <text x="63" y="190" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${TINT_TEXT}" text-anchor="middle">Oslo</text>

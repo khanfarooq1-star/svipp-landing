@@ -15,50 +15,63 @@
 @font-face { font-family: 'Figtree'; font-style: normal; font-weight: 900; font-display: swap; src: url('/fonts/figtree-latin-900-normal.woff2') format('woff2'); }
 </style>
 <style>
+/* SVIPP BRAND TOKENS — se /docs/design-system.md (autoritativ kilde)
+   RØD = HANDLING/MERKEVARE · GRØNN = RESULTAT · GRAFITT = TILLIT · GRÅ = SEKUNDÆR */
 :root {
-  --coral: #185FA5;
-  --ink:   #111111;
-  --ink-2: #333333;
-  --muted: #6f6f6f;
-  --line:  #e5e5e5;
-  --bg:    #ffffff;
-  --surface: #f7f7f6;
+  --brand-primary:  #FA2D48;
+  --text-primary:   #1D1D1F;
+  --text-secondary: #86868B;
+  --bg-primary:     #FFFFFF;
+  --bg-secondary:   #F5F5F7;
+  --border-subtle:  #E5E5EA;
+  --border-primary: #D2D2D7;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand-primary:  #FA2D48;
+    --text-primary:   #F5F5F7;
+    --text-secondary: #98989D;
+    --bg-primary:     #000000;
+    --bg-secondary:   #1C1C1E;
+    --border-subtle:  #2C2C2E;
+    --border-primary: #38383A;
+  }
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body {
   font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: var(--ink); background: var(--bg);
+  color: var(--text-primary); background: var(--bg-primary);
   -webkit-font-smoothing: antialiased; line-height: 1.6;
 }
 nav {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 48px; height: 64px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border-subtle);
 }
-.logo { font-weight: 900; font-size: 24px; letter-spacing: -0.045em; color: var(--coral); text-decoration: none; }
-nav a.back { font-size: 14px; font-weight: 600; color: var(--muted); text-decoration: none; transition: color .15s; }
-nav a.back:hover { color: var(--coral); }
+.logo { font-weight: 900; font-size: 24px; letter-spacing: -0.045em; color: var(--brand-primary); text-decoration: none; }
+nav a.back { font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: color .15s; }
+nav a.back:hover { color: var(--brand-primary); }
 .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; }
-header { border-bottom: 1px solid var(--line); padding-bottom: 28px; margin-bottom: 44px; }
+header { border-bottom: 1px solid var(--border-subtle); padding-bottom: 28px; margin-bottom: 44px; }
 h1 { font-size: 36px; font-weight: 900; letter-spacing: -.03em; margin-bottom: 8px; }
-.meta { font-size: 14px; color: var(--muted); }
+.meta { font-size: 14px; color: var(--text-secondary); }
 h2 { font-size: 20px; font-weight: 800; margin-top: 44px; margin-bottom: 16px; letter-spacing: -.015em; }
-p { margin-bottom: 14px; color: var(--ink-2); font-size: 15px; line-height: 1.75; }
-a { color: var(--coral); text-decoration: underline; text-underline-offset: 2px; }
+p { margin-bottom: 14px; color: var(--text-primary); font-size: 15px; line-height: 1.75; }
+a { color: var(--brand-primary); text-decoration: underline; text-underline-offset: 2px; }
 a:hover { text-decoration: none; }
 
 /* FAQ accordion */
 .faq-list { display: flex; flex-direction: column; gap: 2px; }
 details {
-  border: 1px solid var(--line);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
   overflow: hidden;
-  background: var(--bg);
+  background: var(--bg-primary);
 }
 details + details { margin-top: 6px; }
 summary {
-  font-size: 15px; font-weight: 700; color: var(--ink);
+  font-size: 15px; font-weight: 700; color: var(--text-primary);
   padding: 18px 20px;
   cursor: pointer;
   list-style: none;
@@ -68,49 +81,51 @@ summary {
 summary::-webkit-details-marker { display: none; }
 summary::after {
   content: '+';
-  font-size: 20px; font-weight: 300; color: var(--muted);
+  font-size: 20px; font-weight: 300; color: var(--text-secondary);
   flex-shrink: 0; margin-left: 16px;
   transition: transform .2s;
 }
 details[open] summary::after { transform: rotate(45deg); }
-details[open] summary { background: var(--surface); }
+details[open] summary { background: var(--bg-secondary); }
 .faq-body {
   padding: 0 20px 18px;
-  font-size: 15px; color: var(--ink-2); line-height: 1.75;
+  font-size: 15px; color: var(--text-primary); line-height: 1.75;
 }
 .faq-body p { margin-bottom: 8px; }
 .faq-body p:last-child { margin-bottom: 0; }
 
 /* Contact card */
 .contact-card {
-  background: var(--surface); border: 1px solid var(--line);
+  background: var(--bg-secondary); border: 1px solid var(--border-subtle);
   border-radius: 12px; padding: 24px 28px; margin-top: 20px;
 }
 .contact-card h3 {
-  font-size: 16px; font-weight: 800; margin-bottom: 12px; color: var(--ink);
+  font-size: 16px; font-weight: 800; margin-bottom: 12px; color: var(--text-primary);
 }
 .contact-row {
   display: flex; gap: 12px; align-items: flex-start;
-  margin-bottom: 10px; font-size: 15px; color: var(--ink-2);
+  margin-bottom: 10px; font-size: 15px; color: var(--text-primary);
 }
 .contact-label {
   font-size: 12px; font-weight: 700; letter-spacing: .05em;
-  text-transform: uppercase; color: var(--muted);
+  text-transform: uppercase; color: var(--text-secondary);
   min-width: 80px; padding-top: 2px;
 }
+/* Responstid-garanti = TILLIT (grafitt/grå), ikke RESULTAT (grønn).
+   Ingenting er «oppnådd» her — det er et trygghetssignal, ikke en bekreftelse. */
 .sla-badge {
   display: inline-block;
-  background: #f0fdf4; color: #16a34a;
-  border: 1px solid #bbf7d0;
+  background: var(--bg-secondary); color: var(--text-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 100px; padding: 3px 12px;
   font-size: 12px; font-weight: 700;
 }
 footer {
   margin-top: 72px; padding-top: 24px;
-  border-top: 1px solid var(--line);
-  font-size: 13px; color: var(--muted); text-align: center;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 13px; color: var(--text-secondary); text-align: center;
 }
-footer a { color: var(--muted); }
+footer a { color: var(--text-secondary); }
 @media (max-width: 600px) {
   nav { padding: 0 20px; }
   .wrap { padding: 40px 20px 72px; }
@@ -245,7 +260,7 @@ footer a { color: var(--muted); }
     </div>
   </div>
 
-  <p style="margin-top:24px; font-size:14px; color:var(--muted);">
+  <p style="margin-top:24px; font-size:14px; color:var(--text-secondary);">
     For personvern- og juridiske henvendelser, bruk <a href="mailto:juridisk@svipp.app">juridisk@svipp.app</a>.
     Du kan også lese vår <a href="/personvern">personvernpolicy</a>, <a href="/vilkar">brukervilkår</a> og <a href="/refund">angrerettspolicy</a>.
   </p>
