@@ -7,9 +7,13 @@
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <title>Svipp — Søk jobb på 30 sekunder</title>
+<link rel="preload" href="/fonts/figtree-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/figtree-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <meta name="description" content="Svipp henter norske stillinger, leser CV-en din og skriver skreddersydd søknad på under 30 sekunder. Sveip deg til ny jobb.">
+<link rel="canonical" href="https://svipp.app/">
+<meta name="apple-itunes-app" content="app-id=6765740587">
 <meta property="og:title" content="Svipp — Søk jobb på 30 sekunder">
-<meta property="og:description" content="Sveip norske stillinger. Svipp skriver søknaden. Du trykker send.">
+<meta property="og:description" content="Sveip norske jobber. Svipp skriver søknaden. Du trykker send.">
 <meta property="og:url" content="https://svipp.app">
 <meta property="og:type" content="website">
   <meta property="og:image" content="https://svipp.app/images/og-image.png">
@@ -448,6 +452,11 @@ footer {
 /* ─── FADE ANIMATION ─── */
 .fade { opacity: 0; transform: translateY(20px); transition: opacity .5s ease, transform .5s ease; }
 .fade.in { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .fade { opacity: 1; transform: none; transition: none; }
+  .badge-dot { animation: none; }
+}
 
 /* ─── RESPONSIVE ─── */
 @media (max-width: 1100px) {
@@ -473,6 +482,7 @@ footer {
 </style>
 </head>
 <body>
+<noscript><style>.fade { opacity: 1; transform: none; }</style></noscript>
 
 <nav>
   <a href="/" class="logo">svipp</a>
@@ -481,17 +491,17 @@ footer {
     <li><a href="#features">Hvorfor Svipp</a></li>
     <li><a href="#pricing">Priser</a></li>
     <li><a href="#faq">FAQ</a></li>
-    <li><a href="#pricing" class="nav-cta">Last ned</a></li>
+    <li><a href="https://apps.apple.com/no/app/svipp/id6765740587" class="nav-cta">Last ned</a></li>
   </ul>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="badge"><span class="badge-dot"></span>Snart i App Store</div>
+  <div class="badge"><span class="badge-dot"></span>Nå i App Store</div>
   <h1>Vi finner jobben.<br><em>Vi skriver</em> søknaden.<br>Du trykker send.</h1>
-  <p class="hero-lead">Svipp henter norske jobber, leser CV-en din og skriver skreddersydd søknadsbrev og CV — alt på under 30 sekunder.</p>
+  <p class="hero-lead">Svipp henter norske jobber, leser CV-en din og skriver skreddersydd søknadsbrev og CV — på under 30 sekunder.</p>
   <div class="hero-actions">
-    <a href="#pricing" class="btn btn-primary">Last ned gratis</a>
+    <a href="https://apps.apple.com/no/app/svipp/id6765740587" class="btn btn-primary">Last ned gratis</a>
     <a href="#how" class="btn btn-outline">Slik fungerer det</a>
   </div>
   <div class="stats">
@@ -526,7 +536,7 @@ footer {
         <div class="step-icon">
           <svg width="18" height="18" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         </div>
-        <h3>Last inn CV-en din</h3>
+        <h3>Last opp CV-en din</h3>
         <p>Last opp CV-filen din eller fyll inn manuelt. Svipp husker profilen din — du gjør dette én gang.</p>
       </div>
       <div class="step fade">
@@ -535,7 +545,7 @@ footer {
           <svg width="18" height="18" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
         </div>
         <h3>Sveip gjennom jobber</h3>
-        <p>Bla gjennom ekte norske jobber. Finn noe som passer — trykk Søk nå.</p>
+        <p>Ekte norske jobber fra offentlige utlysninger, som kort. Sveip høyre for å lagre, venstre for å hoppe over.</p>
       </div>
       <div class="step fade">
         <span class="step-num">03</span>
@@ -551,7 +561,7 @@ footer {
           <svg width="18" height="18" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </div>
         <h3>Send med ett trykk</h3>
-        <p>E-posten åpnes ferdig utfylt. Du trykker send og får bekreftelse på at søknaden er mottatt.</p>
+        <p>Du ser gjennom, redigerer om du vil, og trykker send. Svipp leverer søknaden direkte til arbeidsgiver og bekrefter at den er mottatt.</p>
       </div>
     </div>
   </div>
@@ -573,8 +583,8 @@ footer {
       </div>
       <div class="feature fade">
         <div class="feature-line"></div>
-        <h3>Jobber fra hele Norge</h3>
-        <p>Svipp henter ferske norske jobber direkte fra offentlige stillingsutlysninger — i et format laget for å sveipe.</p>
+        <h3>Matchscore på hver jobb</h3>
+        <p>Svipp viser hvor godt du matcher jobben — og forklarer hvorfor. Du ser hva som gjør deg til en sterk kandidat før du sender.</p>
       </div>
       <div class="feature result fade">
         <div class="feature-line"></div>
@@ -584,8 +594,8 @@ footer {
       </div>
       <div class="feature fade">
         <div class="feature-line"></div>
-        <h3>Oppfølging med ett trykk</h3>
-        <p>Send oppfølgingsmail til arbeidsgiver med ett trykk — du velger når og godkjenner teksten. Øker svarprosenten merkbart.</p>
+        <h3>Automatisk oppfølging</h3>
+        <p>Gi samtykke når du sender, så følger Svipp opp arbeidsgiveren for deg til riktig tid. Du ser alt som sendes i appen.</p>
       </div>
       <div class="feature fade">
         <div class="feature-line"></div>
@@ -594,8 +604,8 @@ footer {
       </div>
       <div class="feature fade">
         <div class="feature-line"></div>
-        <h3>En profil — alle søknader</h3>
-        <p>Last opp CV-en én gang. Svipp tilpasser og oppdaterer den automatisk for hver jobb du søker på.</p>
+        <h3>Jobbradar</h3>
+        <p>Svipp følger med på nye utlysninger for deg og varsler deg når en jobb matcher profilen din. Du styrer varslene selv.</p>
       </div>
     </div>
   </div>
@@ -620,8 +630,8 @@ footer {
         <tbody>
           <tr><td>Tid per søknad</td><td class="hl">Under 30 sekunder</td><td>30–90 minutter</td></tr>
           <tr><td>Tilpasset jobben</td><td class="hl"><span class="pos">Ja</span> — automatisk</td><td>Manuelt, om du rekker</td></tr>
-          <tr><td>Bekreftelse på mottak</td><td class="hl"><span class="pos">Ja</span> — alltid</td><td><span class="neg">Sjelden</span></td></tr>
-          <tr><td>Oppfølging til arbeidsgiver</td><td class="hl"><span class="pos">Ja</span> — med ett trykk</td><td>Husker du det?</td></tr>
+          <tr><td>Bekreftelse på mottak</td><td class="hl"><span class="pos">Ja</span> — med tidsstempel</td><td><span class="neg">Sjelden</span></td></tr>
+          <tr><td>Oppfølging til arbeidsgiver</td><td class="hl"><span class="pos">Ja</span> — automatisk</td><td>Husker du det?</td></tr>
           <tr><td>CV tilpasset per jobb</td><td class="hl"><span class="pos">Ja</span></td><td><span class="neg">Sjelden</span></td></tr>
           <tr><td>Norske jobber</td><td class="hl"><span class="pos">Ja</span> — innebygd</td><td>Eget nettleserfanevindu</td></tr>
         </tbody>
@@ -647,11 +657,11 @@ footer {
         <div class="plan-rule"></div>
         <ul class="plan-features">
           <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>3 sendte søknader totalt</li>
-          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Alle CV-maler</li>
-          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Svipp-generert søknadsbrev</li>
+          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Skreddersydd søknadsbrev og CV</li>
+          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Automatisk oppfølging</li>
           <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Leveringsbekreftelse</li>
         </ul>
-        <a href="#" class="plan-btn">Last ned</a>
+        <a href="https://apps.apple.com/no/app/svipp/id6765740587" class="plan-btn">Last ned</a>
       </div>
 
       <div class="plan fade">
@@ -660,12 +670,12 @@ footer {
         <div class="plan-rule"></div>
         <ul class="plan-features">
           <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Ubegrenset søking</li>
-          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Alle CV-maler</li>
+          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Skreddersydd søknadsbrev og CV</li>
+          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Automatisk oppfølging</li>
           <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Leveringsbekreftelse</li>
-          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Oppfølging med ett trykk</li>
           <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Fleksibel — fornyes ukentlig</li>
         </ul>
-        <a href="#" class="plan-btn">Kom i gang</a>
+        <a href="https://apps.apple.com/no/app/svipp/id6765740587" class="plan-btn">Kom i gang</a>
       </div>
 
       <div class="plan featured fade">
@@ -674,12 +684,12 @@ footer {
         <div class="plan-rule"></div>
         <ul class="plan-features">
           <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Ubegrenset søking</li>
-          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Alle CV-maler</li>
+          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Skreddersydd søknadsbrev og CV</li>
+          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Automatisk oppfølging</li>
           <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Leveringsbekreftelse</li>
-          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Oppfølging med ett trykk</li>
           <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Lavere månedspris enn ukentlig</li>
         </ul>
-        <a href="#" class="plan-btn primary">Kom i gang</a>
+        <a href="https://apps.apple.com/no/app/svipp/id6765740587" class="plan-btn primary">Kom i gang</a>
       </div>
 
       <div class="plan fade">
@@ -688,12 +698,12 @@ footer {
         <div class="plan-rule"></div>
         <ul class="plan-features">
           <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Ubegrenset søking</li>
-          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Alle CV-maler</li>
+          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Skreddersydd søknadsbrev og CV</li>
+          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Automatisk oppfølging</li>
           <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Leveringsbekreftelse</li>
-          <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Oppfølging med ett trykk</li>
           <li><span class="check-icon"><svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>Lavest månedspris per periode</li>
         </ul>
-        <a href="#" class="plan-btn">Kom i gang</a>
+        <a href="https://apps.apple.com/no/app/svipp/id6765740587" class="plan-btn">Kom i gang</a>
       </div>
 
     </div>
@@ -718,6 +728,10 @@ footer {
         <div class="faq-a">Svipp henter ekte norske jobber fra offentlige utlysninger, oppdatert kontinuerlig — presentert i et format laget for å sveipe.</div>
       </div>
       <div class="faq-item">
+        <button class="faq-q">Hva skjer når jeg sveiper?<span class="faq-icon"><svg width="12" height="12" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></span></button>
+        <div class="faq-a">Sveip høyre for å lagre jobben, venstre for å hoppe over. Ingenting sendes når du sveiper — du søker når du selv velger en lagret jobb og godkjenner søknaden.</div>
+      </div>
+      <div class="faq-item">
         <button class="faq-q">Vil søknadene høres ut som alle andres?<span class="faq-icon"><svg width="12" height="12" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></span></button>
         <div class="faq-a">Nei. Svipp bruker vokabularet og erfaringene fra din CV og tilpasser teksten til den konkrete jobben. Ingen generiske mal-åpninger. Ingen "Jeg er svært motivert for denne jobben".</div>
       </div>
@@ -734,8 +748,12 @@ footer {
         <div class="faq-a">Abonnement kjøpes direkte i appen via App Store og belastes din Apple-konto. Du starter gratis med 3 søknader. Abonnement fornyes automatisk og kan kanselleres når som helst i App Store-innstillingene.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-q">Når er appen tilgjengelig?<span class="faq-icon"><svg width="12" height="12" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></span></button>
-        <div class="faq-a">Svipp er under review for App Store og lanseres snart. Følg med her for oppdateringer.</div>
+        <button class="faq-q">Kan jeg få Svipp gratis ved å invitere venner?<span class="faq-icon"><svg width="12" height="12" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></span></button>
+        <div class="faq-a">Ja. Del invitasjonslenken din fra appen. Når tre inviterte venner har sendt sin første søknad, får du 30 dager med ubegrenset søking — helt gratis. Du kan opptjene inntil ti slike perioder.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Hvor kan jeg laste ned Svipp?<span class="faq-icon"><svg width="12" height="12" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></span></button>
+        <div class="faq-a">Svipp er tilgjengelig for iPhone. <a href="https://apps.apple.com/no/app/svipp/id6765740587" style="color:var(--brand-primary);">Last den ned gratis i App Store</a> — du starter med tre gratis søknader.</div>
       </div>
     </div>
   </div>
@@ -745,7 +763,7 @@ footer {
 <section class="cta-band">
   <h2>Klar for<br><em>30-sekunders</em> jobbjakt?</h2>
   <p>Gratis å starte. Ingen kredittkort.</p>
-  <a href="#" class="btn btn-primary">Last ned Svipp</a>
+  <a href="https://apps.apple.com/no/app/svipp/id6765740587" class="btn btn-primary">Last ned Svipp</a>
 </section>
 
 <!-- FOOTER -->
@@ -761,14 +779,17 @@ footer {
         <li><a href="#how">Slik fungerer det</a></li>
         <li><a href="#pricing">Priser</a></li>
         <li><a href="#faq">FAQ</a></li>
-        <li><a href="mailto:kontakt@svipp.app">Kontakt oss</a></li>
+        <li><a href="https://apps.apple.com/no/app/svipp/id6765740587">Last ned i App Store</a></li>
       </ul>
     </div>
     <div class="footer-col">
-      <h4>Rettigheter</h4>
+      <h4>Hjelp og rettigheter</h4>
       <ul>
+        <li><a href="/support">Support</a></li>
         <li><a href="/personvern">Personvernpolicy</a></li>
         <li><a href="/vilkar">Brukervilkår</a></li>
+        <li><a href="/refund">Angrerett og refusjon</a></li>
+        <li><a href="mailto:kontakt@svipp.app">Kontakt oss</a></li>
       </ul>
     </div>
   </div>
