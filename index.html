@@ -452,6 +452,11 @@ footer {
 /* ─── FADE ANIMATION ─── */
 .fade { opacity: 0; transform: translateY(20px); transition: opacity .5s ease, transform .5s ease; }
 .fade.in { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .fade { opacity: 1; transform: none; transition: none; }
+  .badge-dot { animation: none; }
+}
 
 /* ─── RESPONSIVE ─── */
 @media (max-width: 1100px) {
@@ -477,6 +482,7 @@ footer {
 </style>
 </head>
 <body>
+<noscript><style>.fade { opacity: 1; transform: none; }</style></noscript>
 
 <nav>
   <a href="/" class="logo">svipp</a>
