@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Kontrolltarnet · Svipp</title>
+
+<!--
+  Svipp Kontrolltarnet - privat admin-dashboard.
+
+  SIKKERHET: Denne fila inneholder KUN prosjekt-URL og den PUBLISERBARE
+  (offentlige) API-nokkelen. Den er ment for nettleseren og er beskyttet av
+  RLS + admin-allowlisten i edge functionen 'admin-metrics'. Ingen service-
+  rolle-nokkel finnes her. All dataspoerring gaar gjennom edge functionen,
+  autentisert med brukerens egen JWT.
+-->
+
+<style>
+  /* Figtree (samme som svipp.app). Faller tilbake til systemfont hvis fila
+     ikke er tilgjengelig (f.eks. ved lokal fil-aapning). */
+  @font-face { font-family:'Figtree'; font-style:normal; font-weight:400; font-display:swap; src:url('/fonts/figtree-latin-400-normal.woff2') format('woff2'); }
+  @font-face { font-family:'Figtree'; font-style:normal; font-weight:500; font-display:swap; src:url('/fonts/figtree-latin-500-normal.woff2') format('woff2'); }
+  @font-face { font-family:'Figtree'; font-style:normal; font-weight:600; font-display:swap; src:url('/fonts/figtree-latin-600-normal.woff2') format('woff2'); }
+  @font-face { font-family:'Figtree'; font-style:normal; font-weight:700; font-display:swap; src:url('/fonts/figtree-latin-700-normal.woff2') format('woff2'); }
+  @font-face { font-family:'Figtree'; font-style:normal; font-weight:800; font-display:swap; src:url('/fonts/figtree-latin-800-normal.woff2') format('woff2'); }
+  @font-face { font-family:'Figtree'; font-style:normal; font-weight:900; font-display:swap; src:url('/fonts/figtree-latin-900-normal.woff2') format('woff2'); }
+
+  /* ── Offisielle design-tokens (fasit: docs/design-system.md) ── */
+  :root {
+    --brand-primary:#FA2D48; --brand-primary-hover:#E11D38;
+    --text-primary:#1D1D1F; --text-secondary:#86868B;
+    --bg-primary:#FFFFFF; --bg-secondary:#F5F5F7; --nav-bg:rgba(255,255,255,.94);
+    --border-primary:#D2D2D7; --border-subtle:#E5E5EA;
+    --success:#1D9E75; --success-bg:#E1F5EE; --success-text:#0F6E56;
+    --action-bg:#1D1D1F; --action-text:#FFFFFF;
+    --radius:16px; --radius-sm:10px;
+    --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04);
+    /* nøytral grafitt-tone for brukervekst-linja (struktur, ikke resultat) */
+    --data-neutral:#1D1D1F; --data-neutral-soft:rgba(29,29,31,.08);
+    --grid:#EBEBED; --tick:#86868B;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --brand-primary:#FA2D48; --brand-primary-hover:#FF4D63;
+      --text-primary:#F5F5F7; --text-secondary:#98989D;
+      --bg-primary:#000000; --bg-secondary:#1C1C1E; --nav-bg:rgba(0,0,0,.72);
+      --border-primary:#38383A; --border-subtle:#2C2C2E;
+      --success:#2FD6A0; --success-bg:#0F2E26; --success-text:#7EE8C6;
+      --action-bg:#F5F5F7; --action-text:#1D1D1F;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.5);
+      --data-neutral:#E5E5EA; --data-neutral-soft:rgba(229,229,234,.10);
+      --grid:#2C2C2E; --tick:#98989D;
+    }
+  }
+
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  html { -webkit-text-size-adjust:100%; }
+  body {
+    font-family:'Figtree',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    color:var(--text-primary); background:var(--bg-secondary);
+    -webkit-font-smoothing:antialiased; line-height:1.4;
+    min-height:100vh; min-height:100dvh;
+  }
+
+  .wordmark { font-weight:900; letter-spacing:-.045em; color:var(--brand-primary); text-decoration:none; }
+
+  /* ── INNLOGGING ── */
+  #login-view {
+    min-height:100vh; min-height:100dvh;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .login-card {
+    width:100%; max-width:360px; background:var(--bg-primary);
+    border:1px solid var(--border-subtle); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:36px 32px;
+  }
+  .login-card .wordmark { font-size:30px; display:block; margin-bottom:4px; }
+  .login-card h1 { font-size:18px; font-weight:700; margin-bottom:26px; letter-spacing:-.01em; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; }
+  .field input {
+    width:100%; padding:12px 14px; font-size:16px; font-family:inherit;
+    color:var(--text-primary); background:var(--bg-secondary);
+    border:1px solid var(--border-primary); border-radius:var(--radius-sm);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .field input:focus { outline:none; border-color:var(--brand-primary); box-shadow:0 0 0 3px rgba(250,45,72,.12); }
+  /* Coral = handling/CTA (admin-fargekontrakt) */
+  .btn-cta {
+    width:100%; padding:12px 18px; font-size:15px; font-weight:700; font-family:inherit;
+    color:#fff; background:var(--brand-primary); border:none; border-radius:100px;
+    cursor:pointer; transition:background .15s, transform .05s; margin-top:8px;
+  }
+  .btn-cta:hover { background:var(--brand-primary-hover); }
+  .btn-cta:active { transform:translateY(1px); }
+  .btn-cta:disabled { opacity:.6; cursor:default; }
+  .form-msg { font-size:13px; margin-top:14px; min-height:18px; color:var(--text-secondary); }
+  .form-msg.error { color:var(--brand-primary); font-weight:600; }
+
+  /* ── DASHBOARD ── */
+  #app-view { display:none; max-width:1080px; margin:0 auto; padding:20px 20px 64px; }
+
+  .topbar {
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:12px 4px 22px; border-bottom:1px solid var(--border-subtle); margin-bottom:26px;
+  }
+  .topbar .wordmark { font-size:26px; }
+  .topbar h1 { font-size:17px; font-weight:700; letter-spacing:-.01em; }
+  .topbar .spacer { flex:1 1 auto; }
+  .updated { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-secondary); }
+  .pulse { width:8px; height:8px; border-radius:50%; background:var(--success); box-shadow:0 0 0 rgba(29,158,117,.5); animation:pulse 2s infinite; }
+  @keyframes pulse {
+    0% { box-shadow:0 0 0 0 rgba(29,158,117,.45); }
+    70% { box-shadow:0 0 0 7px rgba(29,158,117,0); }
+    100% { box-shadow:0 0 0 0 rgba(29,158,117,0); }
+  }
+  @media (prefers-reduced-motion: reduce) { .pulse { animation:none; } }
+  .btn-refresh {
+    padding:9px 18px; font-size:14px; font-weight:700; font-family:inherit;
+    color:#fff; background:var(--brand-primary); border:none; border-radius:100px;
+    cursor:pointer; transition:background .15s, transform .05s;
+  }
+  .btn-refresh:hover { background:var(--brand-primary-hover); }
+  .btn-refresh:active { transform:translateY(1px); }
+  .btn-refresh:disabled { opacity:.55; cursor:default; }
+  .btn-logout {
+    padding:9px 14px; font-size:13px; font-weight:600; font-family:inherit;
+    color:var(--text-secondary); background:transparent;
+    border:1px solid var(--border-primary); border-radius:100px; cursor:pointer;
+  }
+  .btn-logout:hover { color:var(--text-primary); border-color:var(--text-secondary); }
+
+  .card {
+    background:var(--bg-primary); border:1px solid var(--border-subtle);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:22px 24px;
+  }
+  .card .klabel {
+    font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--text-secondary); margin-bottom:12px;
+  }
+  .kpi-value { font-size:40px; font-weight:800; letter-spacing:-.02em; color:var(--text-primary); line-height:1.05; }
+  .kpi-sub { font-size:13px; color:var(--text-secondary); margin-top:8px; }
+  .delta-up { color:var(--success-text); font-weight:700; }
+  .estimat-note { color:var(--text-secondary); font-size:12px; margin-top:8px; }
+  .estimat-tag {
+    display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em;
+    text-transform:uppercase; color:var(--text-secondary);
+    border:1px solid var(--border-primary); border-radius:6px; padding:2px 7px; margin-left:8px; vertical-align:middle;
+  }
+
+  .grid-kpi { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:16px; }
+  .grid-charts { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  .grid-small { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+
+  .chart-card h2 { font-size:15px; font-weight:700; margin-bottom:2px; letter-spacing:-.01em; }
+  .chart-card .csub { font-size:12px; color:var(--text-secondary); margin-bottom:14px; }
+  .chart-box { position:relative; height:240px; }
+
+  /* Leveringsrate = tillitsanker -> lite grønt høydepunkt (bekreftet resultat) */
+  .card.result { background:var(--success-bg); border-color:transparent; }
+  .card.result .klabel { color:var(--success-text); }
+  .card.result .kpi-value { color:var(--success-text); font-size:34px; }
+  .card.result .kpi-sub { color:var(--success-text); opacity:.85; }
+
+  .metric-num { font-size:30px; font-weight:800; letter-spacing:-.02em; }
+
+  /* Abonnenter per plan */
+  .plan-row { display:flex; align-items:center; gap:10px; margin-top:12px; font-size:13px; }
+  .plan-row:first-of-type { margin-top:4px; }
+  .plan-name { width:74px; color:var(--text-primary); font-weight:600; text-transform:capitalize; flex:0 0 auto; }
+  .plan-track { flex:1 1 auto; height:8px; background:var(--data-neutral-soft); border-radius:100px; overflow:hidden; }
+  .plan-fill { height:100%; background:var(--data-neutral); border-radius:100px; width:0; transition:width .6s ease; }
+  .plan-fill.free { background:var(--border-primary); }
+  .plan-meta { flex:0 0 auto; color:var(--text-secondary); font-variant-numeric:tabular-nums; min-width:64px; text-align:right; }
+
+  .overlay {
+    position:fixed; inset:0; background:var(--bg-secondary);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; color:var(--text-secondary); z-index:50;
+  }
+  .overlay[hidden] { display:none; }
+
+  @media (max-width: 860px) {
+    .grid-charts { grid-template-columns:1fr; }
+    .grid-small { grid-template-columns:1fr; }
+  }
+  @media (max-width: 620px) {
+    .grid-kpi { grid-template-columns:1fr; }
+    .kpi-value { font-size:36px; }
+    .topbar h1 { width:100%; order:5; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── INNLOGGING ── -->
+<section id="login-view">
+  <form class="login-card" id="login-form" autocomplete="on">
+    <span class="wordmark">svipp</span>
+    <h1>Kontrolltarnet</h1>
+    <div class="field">
+      <label for="epost">E-post</label>
+      <input id="epost" name="epost" type="email" autocomplete="username" required inputmode="email" autocapitalize="none">
+    </div>
+    <div class="field">
+      <label for="passord">Passord</label>
+      <input id="passord" name="passord" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="btn-cta" type="submit" id="login-btn">Logg inn</button>
+    <div class="form-msg" id="login-msg"></div>
+  </form>
+</section>
+
+<!-- ── DASHBOARD ── -->
+<main id="app-view">
+  <header class="topbar">
+    <span class="wordmark">svipp</span>
+    <h1>Kontrolltarnet</h1>
+    <span class="spacer"></span>
+    <span class="updated"><span class="pulse" title="Live"></span><span id="updated-at">–</span></span>
+    <button class="btn-refresh" id="refresh-btn">Oppdater</button>
+    <button class="btn-logout" id="logout-btn">Logg ut</button>
+  </header>
+
+  <!-- Rad 1: tre nøkkeltall -->
+  <section class="grid-kpi">
+    <div class="card">
+      <div class="klabel">Estimert MRR<span class="estimat-tag">Estimat</span></div>
+      <div class="kpi-value" data-count="mrr" data-format="kr">–</div>
+      <div class="estimat-note">Estimat — ekte tall fra RevenueCat kommer</div>
+    </div>
+    <div class="card">
+      <div class="klabel">Aktive brukere</div>
+      <div class="kpi-value" data-count="brukere" data-format="int">–</div>
+      <div class="kpi-sub"><span class="delta-up" id="brukere-delta">–</span> siste 7 dager</div>
+    </div>
+    <div class="card">
+      <div class="klabel">Sveips i dag</div>
+      <div class="kpi-value" data-count="sveips-idag" data-format="int">–</div>
+      <div class="kpi-sub">Send-rate <span id="send-rate">–</span> (høyre av alle sveip)</div>
+    </div>
+  </section>
+
+  <!-- Rad 2: to grafer -->
+  <section class="grid-charts">
+    <div class="card chart-card">
+      <h2>Brukervekst</h2>
+      <div class="csub">Totalt antall brukere · siste 30 dager</div>
+      <div class="chart-box"><canvas id="chart-growth"></canvas></div>
+    </div>
+    <div class="card chart-card">
+      <h2>Sveips per dag</h2>
+      <div class="csub">Høyre (generert) vs. venstre (forkastet) · siste 30 dager</div>
+      <div class="chart-box"><canvas id="chart-swipes"></canvas></div>
+    </div>
+  </section>
+
+  <!-- Rad 3: mindre metrikk-kort -->
+  <section class="grid-small">
+    <div class="card result">
+      <div class="klabel">Leveringsrate</div>
+      <div class="kpi-value" data-count="levering" data-format="pct">–</div>
+      <div class="kpi-sub" id="levering-sub">–</div>
+    </div>
+    <div class="card">
+      <div class="klabel">Konvertering</div>
+      <div class="metric-num" data-count="konv" data-format="pct">–</div>
+      <div class="kpi-sub" id="konv-sub">paywall → kjøp</div>
+    </div>
+    <div class="card">
+      <div class="klabel">Abonnenter per plan</div>
+      <div id="plan-list"></div>
+    </div>
+  </section>
+</main>
+
+<div class="overlay" id="boot">Laster …</div>
+
+<!-- Supabase JS + Chart.js via CDN (ingen build-steg) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ── Konfig (offentlig: URL + publiserbar nøkkel, aldri service-nøkkel) ──
+  const SUPABASE_URL = "https://lfinuqiavodzagstkile.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_vgS4nq9jKgq4rUeKmsgckA_DIPrsBXr";
+  const FUNCTION_URL = SUPABASE_URL + "/functions/v1/admin-metrics";
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+  const $ = (sel) => document.querySelector(sel);
+  const loginView = $("#login-view");
+  const appView = $("#app-view");
+  const boot = $("#boot");
+
+  // ── Formatering (norsk) ──
+  const nf = new Intl.NumberFormat("nb-NO");
+  const fmt = {
+    int: (n) => nf.format(Math.round(n)),
+    kr: (n) => nf.format(Math.round(n)) + " kr",
+    pct: (frac) => (frac * 100).toLocaleString("nb-NO", { maximumFractionDigits: 1 }) + " %",
+  };
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Tell opp fra 0 til verdi (subtil "levende" animasjon).
+  function countUp(el, target, kind) {
+    const f = fmt[kind] || fmt.int;
+    if (reduceMotion) { el.textContent = f(target); return; }
+    const dur = 900, t0 = performance.now();
+    function step(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+      el.textContent = f(target * eased);
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = f(target);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // ── Tema-farger til Chart.js (leses fra CSS-variabler, dark mode-aware) ──
+  function themeColors() {
+    const cs = getComputedStyle(document.documentElement);
+    const v = (name) => cs.getPropertyValue(name).trim();
+    return {
+      success: v("--success"),
+      neutral: v("--data-neutral"),
+      neutralSoft: v("--data-neutral-soft"),
+      grid: v("--grid"),
+      tick: v("--tick"),
+      surface: v("--bg-primary"),
+      leftBar: v("--border-primary"),
+    };
+  }
+
+  let growthChart = null, swipeChart = null;
+
+  function renderCharts(serie) {
+    window.__lastSerie = serie;
+    const c = themeColors();
+    const labels = serie.map((d) => d.dato.slice(5)); // MM-DD
+
+    // Brukervekst: kumulativ total (rekonstruert bakover fra dagens total).
+    // Grafitt/nøytral linje — vekst er struktur, ikke et bekreftet resultat.
+    const cumulative = [];
+    let running = 0;
+    for (const d of serie) { running += d.nye_brukere; cumulative.push(running); }
+    // running = sum nye i vinduet; forskyv så siste punkt = dagens total.
+    const base = (window.__total || running) - running;
+    const growthData = cumulative.map((v) => v + base);
+
+    const baseAxis = {
+      grid: { color: c.grid, drawBorder: false },
+      border: { display: false },
+      ticks: { color: c.tick, font: { family: "Figtree", size: 11 } },
+    };
+    const commonOpts = {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: c.surface, titleColor: c.tick, bodyColor: c.neutral,
+          borderColor: c.grid, borderWidth: 1, padding: 10, cornerRadius: 8,
+          titleFont: { family: "Figtree" }, bodyFont: { family: "Figtree", weight: "600" },
+        },
+      },
+    };
+
+    if (growthChart) growthChart.destroy();
+    growthChart = new Chart($("#chart-growth"), {
+      type: "line",
+      data: { labels, datasets: [{
+        label: "Brukere totalt", data: growthData,
+        borderColor: c.neutral, backgroundColor: c.neutralSoft,
+        borderWidth: 2, fill: true, tension: .3,
+        pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: c.neutral,
+      }]},
+      options: { ...commonOpts, scales: { x: baseAxis, y: { ...baseAxis, beginAtZero: true, ticks: { ...baseAxis.ticks, precision: 0 } } } },
+    });
+
+    if (swipeChart) swipeChart.destroy();
+    swipeChart = new Chart($("#chart-swipes"), {
+      type: "bar",
+      data: { labels, datasets: [
+        // Høyresveip = grønt (bekreftet handling i kjerneløftet)
+        { label: "Høyre (generert)", data: serie.map((d) => d.hoyre_sveips),
+          backgroundColor: c.success, borderRadius: 4, borderSkipped: false,
+          stack: "s", borderColor: c.surface, borderWidth: { top: 2 } },
+        // Venstresveip = grå (nøytral)
+        { label: "Venstre (forkastet)", data: serie.map((d) => d.venstre_sveips),
+          backgroundColor: c.leftBar, borderRadius: 4, borderSkipped: false,
+          stack: "s", borderColor: c.surface, borderWidth: { top: 2 } },
+      ]},
+      options: {
+        ...commonOpts,
+        plugins: {
+          ...commonOpts.plugins,
+          legend: {
+            display: true, position: "bottom", align: "start",
+            labels: { color: c.tick, font: { family: "Figtree", size: 12 },
+              boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: "circle", padding: 16 },
+          },
+        },
+        scales: {
+          x: { ...baseAxis, stacked: true },
+          y: { ...baseAxis, stacked: true, beginAtZero: true, ticks: { ...baseAxis.ticks, precision: 0 } },
+        },
+      },
+    });
+  }
+
+  // ── Render alle tall ──
+  function render(m) {
+    window.__total = m.brukere.total;
+
+    // Rad 1
+    countUp($('[data-count="mrr"]'), m.inntekt_estimat.estimert_mrr_kr, "kr");
+    countUp($('[data-count="brukere"]'), m.brukere.total, "int");
+    $("#brukere-delta").textContent = "+" + fmt.int(m.brukere.nye_7d);
+    countUp($('[data-count="sveips-idag"]'), m.sveips.i_dag_total, "int");
+    $("#send-rate").textContent = fmt.pct(m.sveips.send_rate);
+
+    // Rad 3
+    countUp($('[data-count="levering"]'), m.soknader.leverings_rate, "pct");
+    $("#levering-sub").textContent =
+      fmt.int(m.soknader.levert_total) + " levert av " + fmt.int(m.soknader.sendt_total) + " sendt";
+    countUp($('[data-count="konv"]'), m.konvertering.konverterings_rate, "pct");
+    $("#konv-sub").textContent =
+      fmt.int(m.konvertering.kjop_fullfort_total) + " kjøp av " + fmt.int(m.konvertering.paywall_vist_total) + " paywall-visninger";
+
+    // Abonnenter per plan
+    const plans = m.inntekt_estimat.per_plan;
+    const maxAnt = Math.max(1, ...plans.map((p) => p.antall));
+    const label = { ukentlig: "Ukentlig", manedlig: "Månedlig", kvartalsvis: "Kvartalsvis", plus_gratis: "Plus gratis" };
+    $("#plan-list").innerHTML = plans.map((p) => {
+      const pris = p.pris_mnd_kr > 0 ? fmt.int(p.pris_mnd_kr) + " kr/mnd" : "0 kr";
+      return '<div class="plan-row">' +
+        '<span class="plan-name">' + (label[p.plan] || p.plan) + '</span>' +
+        '<span class="plan-track"><span class="plan-fill' + (p.pris_mnd_kr > 0 ? '' : ' free') + '" style="width:' + (p.antall / maxAnt * 100) + '%"></span></span>' +
+        '<span class="plan-meta">' + fmt.int(p.antall) + ' · ' + pris + '</span>' +
+      '</div>';
+    }).join("");
+
+    // Siste oppdatert
+    const d = new Date(m.generert_kl);
+    $("#updated-at").textContent = "Oppdatert " + d.toLocaleString("nb-NO", {
+      day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+    });
+
+    renderCharts(m.daglig_serie);
+  }
+
+  // ── Hent metrikker (brukerens JWT, edge function) ──
+  async function loadMetrics() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { showLogin(); return; }
+
+    const refreshBtn = $("#refresh-btn");
+    refreshBtn.disabled = true; refreshBtn.textContent = "Oppdaterer …";
+    try {
+      const res = await fetch(FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + session.access_token,
+          "apikey": SUPABASE_PUBLISHABLE_KEY,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.status === 403) {
+        // Ikke admin: aldri se tall. Logg ut.
+        await sb.auth.signOut();
+        showLogin("Ingen tilgang. Denne kontoen er ikke autorisert.");
+        return;
+      }
+      if (res.status === 401) { await sb.auth.signOut(); showLogin("Økten er utløpt. Logg inn på nytt."); return; }
+      if (!res.ok) throw new Error("Serverfeil (" + res.status + ")");
+
+      const body = await res.json();
+      if (!body.ok) throw new Error(body.error || "Ukjent feil");
+
+      showApp();
+      render(body);
+    } catch (err) {
+      showLogin("Kunne ikke hente data: " + err.message);
+    } finally {
+      refreshBtn.disabled = false; refreshBtn.textContent = "Oppdater";
+    }
+  }
+
+  // ── Visnings-tilstander ──
+  function showLogin(msg) {
+    appView.style.display = "none";
+    loginView.style.display = "flex";
+    boot.hidden = true;
+    const el = $("#login-msg");
+    el.textContent = msg || "";
+    el.className = "form-msg" + (msg ? " error" : "");
+  }
+  function showApp() {
+    loginView.style.display = "none";
+    appView.style.display = "block";
+    boot.hidden = true;
+  }
+
+  // ── Hendelser ──
+  $("#login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = $("#login-btn"), msg = $("#login-msg");
+    msg.textContent = ""; msg.className = "form-msg";
+    btn.disabled = true; btn.textContent = "Logger inn …";
+    const { error } = await sb.auth.signInWithPassword({
+      email: $("#epost").value.trim(),
+      password: $("#passord").value,
+    });
+    btn.disabled = false; btn.textContent = "Logg inn";
+    if (error) {
+      msg.textContent = "Innlogging feilet. Sjekk e-post og passord.";
+      msg.className = "form-msg error";
+      return;
+    }
+    $("#passord").value = "";
+    await loadMetrics();
+  });
+
+  $("#refresh-btn").addEventListener("click", loadMetrics);
+  $("#logout-btn").addEventListener("click", async () => { await sb.auth.signOut(); showLogin(); });
+
+  // Re-tegn grafene ved bytte av lys/mørk modus.
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (appView.style.display === "block" && window.__lastSerie) renderCharts(window.__lastSerie);
+  });
+
+  // ── Oppstart: har vi en økt? ──
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) await loadMetrics();
+    else showLogin();
+  })();
+})();
+</script>
+</body>
+</html>
