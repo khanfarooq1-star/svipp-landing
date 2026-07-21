@@ -369,7 +369,9 @@
     /* ---- Konfig (kun offentlige verdier: prosjekt-URL + anon-nøkkel) ---- */
     const SUPABASE_URL = 'https://lfinuqiavodzagstkile.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmaW51cWlhdm9kemFnc3RraWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTY1NDEsImV4cCI6MjA5MDYzMjU0MX0.iTW5Zph8NeJuVYC5Y2SFFIRPlcOO-Xqu3dfxg5w5CME';
-    const METRICS_URL = SUPABASE_URL + '/functions/v1/admin-metrics';
+    // Datamotoren lever i Railway-backenden (ikke en Supabase edge function).
+    // Admin-gaten der validerer brukerens Supabase-JWT mot ADMIN_USER_ID.
+    const METRICS_URL = 'https://api.svipp.app/api/admin/metrics';
 
     // Grasiøs feil hvis CDN-bibliotekene ikke lastet (f.eks. uten nett).
     if (!window.supabase || !window.supabase.createClient) {
@@ -618,8 +620,9 @@
         const res = await fetch(METRICS_URL, {
           method: 'GET',
           headers: {
-            'Authorization': 'Bearer ' + session.access_token,
-            'apikey': SUPABASE_ANON_KEY
+            // Brukerens Supabase-JWT fra OTP-innloggingen. Backendens admin-gate
+            // validerer den mot ADMIN_USER_ID.
+            'Authorization': 'Bearer ' + session.access_token
           }
         });
 
@@ -637,7 +640,7 @@
         renderDashboard(data);
         $('dash-feil').hidden = true;
       } catch (err) {
-        // Vis dashbordet med feilbanner (f.eks. før admin-metrics er deployet i Fase 3).
+        // Vis dashbordet med feilbanner (nett/CORS/backend nede).
         visSeksjon('dash');
         const banner = $('dash-feil');
         banner.textContent = 'Klarte ikke å hente driftstall akkurat nå. Prøv «Oppdater» igjen.';
@@ -650,70 +653,47 @@
     /* ---- Rendering ---- */
     let grafVekst = null, grafSveips = null;
 
+    // Feltnavn matcher EKSAKT det Railway-ruten GET /api/admin/metrics returnerer.
     function renderDashboard(d) {
       d = d || {};
-      const brukere = pick(d, ['brukere'], {});
-      const sveips = pick(d, ['sveips'], {});
-      const soknader = pick(d, ['soknader'], {});
-      const inntekt = pick(d, ['inntekt_estimat', 'inntekt'], {});
-      const konv = pick(d, ['konvertering'], {});
-      const serie = pick(d, ['daglig_serie', 'serie'], []) || [];
+      const brukere = d.brukere || {};
+      const sveips = d.sveips || {};
+      const soknader = d.soknader || {};
+      const inntekt = d.inntekt_estimat || {};
+      const konv = d.konvertering || {};
+      const serie = Array.isArray(d.daglig_serie) ? d.daglig_serie : [];
 
       /* Sist oppdatert */
       const tid = new Date().toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
       $('oppdatert-tid').textContent = 'Sist oppdatert ' + tid;
 
       /* --- Rad 1: KPI --- */
-      const mrr = toNum(pick(inntekt, ['mrr', 'estimert_mrr', 'belop', 'nok'],
-                             typeof inntekt === 'number' ? inntekt : 0));
-      countUp($('kpi-mrr'), mrr, fmtNok);
+      countUp($('kpi-mrr'), toNum(inntekt.estimert_mrr_kr), fmtNok);
+      countUp($('kpi-brukere'), toNum(brukere.total), fmtInt);
+      $('kpi-brukere-delta').textContent = '+' + fmtInt(toNum(brukere.nye_7d));
+      countUp($('kpi-sveips'), toNum(sveips.i_dag_total), fmtInt);
 
-      const aktive = toNum(pick(brukere, ['aktive', 'total', 'totalt', 'antall'],
-                                typeof brukere === 'number' ? brukere : 0));
-      countUp($('kpi-brukere'), aktive, fmtInt);
-
-      const nye7 = toNum(pick(brukere, ['nye_siste_7d', 'nye_7d', 'siste_7_dager', 'vekst_7d', 'delta_7d'], 0));
-      $('kpi-brukere-delta').textContent = '+' + fmtInt(nye7);
-
-      const sveipsIDag = toNum(pick(sveips, ['i_dag', 'idag', 'today', 'total_i_dag', 'total'],
-                                    typeof sveips === 'number' ? sveips : 0));
-      countUp($('kpi-sveips'), sveipsIDag, fmtInt);
-
-      // Send-rate: eksplisitt felt, ellers høyre/(høyre+venstre) i dag, ellers søknader/sveips.
-      let sendRate = toPct(pick(sveips, ['send_rate', 'sendrate', 'hoyre_andel'], null), null);
-      if (sendRate == null) {
-        const h = toNum(pick(sveips, ['hoyre_i_dag', 'hoyre', 'right_i_dag', 'right'], NaN));
-        const v = toNum(pick(sveips, ['venstre_i_dag', 'venstre', 'left_i_dag', 'left'], NaN));
-        if (Number.isFinite(h) && Number.isFinite(v) && (h + v) > 0) sendRate = (h / (h + v)) * 100;
-      }
-      if (sendRate == null) {
-        const sendtIDag = toNum(pick(soknader, ['i_dag', 'sendt_i_dag', 'sendt'], NaN));
-        if (Number.isFinite(sendtIDag) && sveipsIDag > 0) sendRate = (sendtIDag / sveipsIDag) * 100;
-      }
+      const sendRate = toPct(sveips.send_rate, null);
       $('kpi-sendrate').textContent = sendRate == null ? '—' : fmtPct(sendRate);
 
       /* --- Rad 3: mindre kort --- */
-      // Leveringsrate (tillitsanker)
-      let levering = toPct(pick(soknader, ['leveringsrate', 'levering_rate', 'levert_andel'], null), null);
-      if (levering == null) {
-        const levert = toNum(pick(soknader, ['levert', 'antall_levert'], NaN));
-        const sendt = toNum(pick(soknader, ['sendt', 'antall_sendt'], NaN));
-        if (Number.isFinite(levert) && Number.isFinite(sendt) && sendt > 0) levering = (levert / sendt) * 100;
-      }
+      const levering = toPct(soknader.leverings_rate, null);
       $('m-levering').textContent = levering == null ? '—' : fmtPct(levering);
 
-      // Konvertering paywall → kjøp
-      const konvRate = toPct(pick(konv, ['paywall_til_kjop', 'rate', 'paywall_kjop', 'kjop_rate'],
-                                  typeof konv === 'number' ? konv : null), null);
+      const konvRate = toPct(konv.konverterings_rate, null);
       $('m-konvertering').textContent = konvRate == null ? '—' : fmtPct(konvRate);
 
-      // Abonnenter per plan
-      renderPlaner(pick(d, ['abonnenter_per_plan', 'abonnenter', 'planer'],
-                        pick(inntekt, ['abonnenter_per_plan', 'planer'],
-                             pick(brukere, ['abonnenter_per_plan', 'abonnenter'], null))));
+      // Abonnenter per plan — fast rekkefølge, pene navn (alltid alle planene)
+      const pp = inntekt.per_plan || {};
+      renderPlaner([
+        { navn: 'Ukentlig',      antall: toNum(pp.ukentlig) },
+        { navn: 'Månedlig',      antall: toNum(pp.manedlig) },
+        { navn: 'Kvartalsvis',   antall: toNum(pp.kvartalsvis) },
+        { navn: 'Plus (gratis)', antall: toNum(pp.plus_gratis) },
+      ]);
 
       /* --- Rad 2: grafer --- */
-      renderGrafer(serie);
+      renderGrafer(serie, toNum(brukere.total));
     }
 
     function renderPlaner(planer) {
@@ -747,25 +727,22 @@
       }
     }
 
-    function renderGrafer(serie) {
+    function renderGrafer(serie, totalBrukere) {
       serie = Array.isArray(serie) ? serie : [];
       const labels = serie.map((p) => {
-        const dato = pick(p, ['dato', 'dag', 'date'], '');
-        const dd = new Date(dato);
-        return isNaN(dd) ? String(dato) : dd.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' });
+        const dd = new Date(p.dato);
+        return isNaN(dd) ? String(p.dato || '') : dd.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' });
       });
 
-      // Brukervekst: bruk kumulativ hvis tilgjengelig, ellers løpende sum av nye.
-      let kum = 0;
-      const harKum = serie.some((p) => pick(p, ['kumulativ_brukere', 'kum_brukere', 'brukere_totalt', 'totalt'], null) != null);
-      const vekst = serie.map((p) => {
-        if (harKum) return toNum(pick(p, ['kumulativ_brukere', 'kum_brukere', 'brukere_totalt', 'totalt'], 0));
-        kum += toNum(pick(p, ['nye_brukere', 'nye', 'brukere', 'signups'], 0));
-        return kum;
-      });
+      // Brukervekst: kumulativt brukertall gjennom vinduet, forankret slik at
+      // kurven ender på dagens total (baseline = total − sum nye i vinduet).
+      const nye = serie.map((p) => toNum(p.nye_brukere));
+      const sumNye = nye.reduce((a, b) => a + b, 0);
+      let lopende = Math.max(0, toNum(totalBrukere) - sumNye);
+      const vekst = nye.map((n) => (lopende += n));
 
-      const hoyre = serie.map((p) => toNum(pick(p, ['sveips_hoyre', 'hoyre', 'right'], 0)));
-      const venstre = serie.map((p) => toNum(pick(p, ['sveips_venstre', 'venstre', 'left'], 0)));
+      const hoyre = serie.map((p) => toNum(p.hoyre_sveips));
+      const venstre = serie.map((p) => toNum(p.venstre_sveips));
 
       const GRAPHITE = '#1D1D1F', GREEN = '#1D9E75', GREY = '#C7C7CC', TXT = '#86868B', GRID = 'rgba(0,0,0,.06)';
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
