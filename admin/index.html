@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kontrolltårnet — Svipp</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#F5F5F7">
+
+  <!-- SVIPP KONTROLLTÅRN — operasjonelt dashboard (Fase 2, kun frontend)
+       FARGEKONTRAKT (låst):
+         Coral  #FA2D48  → KUN CTA (Oppdater-knappen er eneste coral-CTA).
+         Grønn  #1D9E75  → KUN bekreftede utfall (leveringsrate, vekst-delta, live-prikk).
+         Grafitt#1D1D1F  → struktur og tall. Ingen coral på resultattall. Ingen emojis. -->
+  <style>
+    :root {
+      --coral:          #FA2D48;  /* KUN CTA */
+      --coral-hover:    #E11D38;
+      --green:          #1D9E75;  /* KUN bekreftet utfall */
+      --green-soft:     #E1F5EE;
+      --graphite:       #1D1D1F;  /* struktur + tall */
+      --grey:           #86868B;  /* sekundær */
+      --grey-soft:      #A1A1A6;
+      --bg:             #F5F5F7;  /* lys operasjonell flate */
+      --card:           #FFFFFF;
+      --border:         #E5E5EA;
+      --border-strong:  #D2D2D7;
+      --shadow:         0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05);
+      --radius:         18px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+              Helvetica, Arial, "Figtree", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--graphite);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      line-height: 1.4;
+    }
+    [hidden] { display: none !important; }
+
+    /* ---------- Wordmark ---------- */
+    .wordmark {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-weight: 900; letter-spacing: -1px; color: var(--graphite);
+      font-size: 22px; line-height: 1;
+    }
+    .wordmark .strek {           /* coral logo-strek */
+      width: 20px; height: 4px; border-radius: 2px; background: var(--coral);
+      display: inline-block;
+    }
+
+    /* ---------- Innlogging ---------- */
+    #login {
+      min-height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .login-kort {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      width: 100%; max-width: 380px; padding: 40px 32px 32px;
+    }
+    .login-kort .wordmark { margin-bottom: 28px; }
+    .login-kort h1 {
+      font-size: 20px; font-weight: 700; letter-spacing: -.4px;
+      margin-bottom: 6px;
+    }
+    .login-kort p.sub { font-size: 14px; color: var(--grey); margin-bottom: 24px; }
+    .felt { margin-bottom: 14px; }
+    .felt label {
+      display: block; font-size: 12px; font-weight: 600; letter-spacing: .2px;
+      color: var(--grey); margin-bottom: 6px; text-transform: uppercase;
+    }
+    .felt input {
+      width: 100%; padding: 13px 14px; font-size: 15px; font-family: var(--font);
+      color: var(--graphite); background: var(--bg);
+      border: 1px solid var(--border-strong); border-radius: 12px;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .felt input:focus {
+      outline: none; border-color: var(--graphite);
+      box-shadow: 0 0 0 3px rgba(29,29,31,.08);
+    }
+    .knapp-primar {
+      width: 100%; margin-top: 8px; padding: 14px; font-size: 15px; font-weight: 700;
+      font-family: var(--font); color: #fff; background: var(--graphite);
+      border: none; border-radius: 12px; cursor: pointer; letter-spacing: -.2px;
+      transition: background .15s ease, opacity .15s ease;
+    }
+    .knapp-primar:hover { background: #000; }
+    .knapp-primar:disabled { opacity: .55; cursor: default; }
+    .feilmelding {
+      margin-top: 14px; font-size: 13.5px; color: var(--graphite);
+      background: #FBEEE6; border: 1px solid #F0D9C8; color: #8A4B22;
+      padding: 10px 12px; border-radius: 10px;
+    }
+
+    /* ---------- Skjelett / laster ---------- */
+    #boot {
+      min-height: 100%; display: flex; align-items: center; justify-content: center;
+      color: var(--grey); font-size: 14px;
+    }
+
+    /* ---------- Dashboard ---------- */
+    #dash { max-width: 1160px; margin: 0 auto; padding: 28px 24px 80px; }
+
+    .topplinje {
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+      padding-bottom: 22px; margin-bottom: 26px;
+      border-bottom: 1px solid var(--border);
+    }
+    .topplinje .tittel-blokk { display: flex; flex-direction: column; gap: 3px; }
+    .topplinje h1 {
+      font-size: 15px; font-weight: 700; letter-spacing: -.2px; color: var(--graphite);
+    }
+    .topplinje .oppdatert {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 12.5px; color: var(--grey);
+    }
+    .live-prikk {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 0 0 rgba(29,158,117,.5);
+      animation: puls 2s infinite;
+    }
+    @keyframes puls {
+      0%   { box-shadow: 0 0 0 0 rgba(29,158,117,.45); }
+      70%  { box-shadow: 0 0 0 7px rgba(29,158,117,0); }
+      100% { box-shadow: 0 0 0 0 rgba(29,158,117,0); }
+    }
+    @media (prefers-reduced-motion: reduce) { .live-prikk { animation: none; } }
+    .topp-hoyre { margin-left: auto; display: inline-flex; align-items: center; gap: 16px; }
+    .logg-ut {
+      font-size: 13px; color: var(--grey); background: none; border: none;
+      cursor: pointer; font-family: var(--font); padding: 6px 2px;
+    }
+    .logg-ut:hover { color: var(--graphite); }
+    /* Oppdater — eneste coral-CTA på siden */
+    .knapp-oppdater {
+      font-size: 13px; font-weight: 700; font-family: var(--font); color: #fff;
+      background: var(--coral); border: none; border-radius: 10px;
+      padding: 9px 16px; cursor: pointer; letter-spacing: -.1px;
+      transition: background .15s ease, opacity .15s ease;
+    }
+    .knapp-oppdater:hover { background: var(--coral-hover); }
+    .knapp-oppdater:disabled { opacity: .6; cursor: default; }
+
+    /* Rutenett */
+    .rad { display: grid; gap: 18px; margin-bottom: 18px; }
+    .rad-kpi   { grid-template-columns: repeat(3, 1fr); }
+    .rad-graf  { grid-template-columns: repeat(2, 1fr); }
+    .rad-mindre{ grid-template-columns: repeat(3, 1fr); }
+
+    .kort {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 22px 22px 20px;
+    }
+    .kort .merke {
+      font-size: 11.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+      color: var(--grey); margin-bottom: 14px;
+    }
+
+    /* KPI-kort (store) */
+    .kort-kpi .verdi {
+      font-size: 42px; font-weight: 800; letter-spacing: -1.4px; color: var(--graphite);
+      line-height: 1; font-variant-numeric: tabular-nums;
+    }
+    .kort-kpi .under { margin-top: 10px; font-size: 13px; color: var(--grey); }
+    .under .delta-opp { color: var(--green); font-weight: 700; }
+    .estimat-tag {
+      display: inline-block; margin-top: 10px; font-size: 11.5px; color: var(--grey-soft);
+      font-weight: 600; letter-spacing: .3px;
+    }
+
+    /* Graf-kort */
+    .kort-graf .canvas-wrap { position: relative; height: 240px; margin-top: 4px; }
+    @media (max-width: 560px) { .kort-graf .canvas-wrap { height: 210px; } }
+
+    /* Mindre kort */
+    .kort-mindre .verdi {
+      font-size: 30px; font-weight: 800; letter-spacing: -.8px; line-height: 1;
+      color: var(--graphite); font-variant-numeric: tabular-nums;
+    }
+    /* Leveringsrate = tillitsanker → grønt lite høydepunkt */
+    .kort-levering {
+      border-color: rgba(29,158,117,.28);
+      background: linear-gradient(180deg, var(--green-soft) 0%, var(--card) 62%);
+    }
+    .kort-levering .verdi { color: var(--green); }
+    .kort-levering .under { color: #0F6E56; }
+    .kort-mindre .under { margin-top: 9px; font-size: 12.5px; color: var(--grey); }
+
+    /* Abonnenter per plan */
+    .plan-liste { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+    .plan-rad { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; }
+    .plan-rad .navn { font-size: 13.5px; font-weight: 600; color: var(--graphite); }
+    .plan-rad .antall { font-size: 15px; font-weight: 800; color: var(--graphite); font-variant-numeric: tabular-nums; }
+    .plan-bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--bg); overflow: hidden; }
+    .plan-bar span { display: block; height: 100%; background: var(--graphite); border-radius: 3px; }
+
+    /* Reservert seksjon — Fase 3 plassholder (RESERVER PLASS, IKKE BYGG) */
+    .reservert {
+      margin-top: 36px; padding: 40px 24px; text-align: center;
+      border: 1px dashed var(--border-strong); border-radius: var(--radius);
+      background: repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(0,0,0,.012) 10px, rgba(0,0,0,.012) 20px);
+    }
+    .reservert h2 { font-size: 16px; font-weight: 700; color: var(--graphite); letter-spacing: -.2px; }
+    .reservert p { margin-top: 6px; font-size: 13px; color: var(--grey); letter-spacing: .3px; }
+
+    .dash-feil {
+      background: #FBEEE6; border: 1px solid #F0D9C8; color: #8A4B22;
+      padding: 14px 16px; border-radius: 12px; font-size: 14px; margin-bottom: 18px;
+    }
+
+    /* Responsivt */
+    @media (max-width: 900px) {
+      .rad-kpi, .rad-graf, .rad-mindre { grid-template-columns: 1fr; }
+      .kort-kpi .verdi { font-size: 38px; }
+    }
+    @media (max-width: 480px) {
+      #dash { padding: 20px 16px 64px; }
+      .topplinje { gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Boot / sesjonssjekk -->
+  <div id="boot">Laster…</div>
+
+  <!-- Innlogging -->
+  <section id="login" hidden>
+    <form class="login-kort" id="login-form" autocomplete="on">
+      <div class="wordmark"><span class="strek"></span>svipp</div>
+      <h1>Kontrolltårnet</h1>
+      <p class="sub">Logg inn for å se driftstall.</p>
+
+      <div class="felt">
+        <label for="epost">E-post</label>
+        <input id="epost" name="email" type="email" inputmode="email" autocomplete="email" required>
+      </div>
+      <div class="felt">
+        <label for="passord">Passord</label>
+        <input id="passord" name="password" type="password" autocomplete="current-password" required>
+      </div>
+
+      <button class="knapp-primar" id="login-knapp" type="submit">Logg inn</button>
+      <div class="feilmelding" id="login-feil" hidden></div>
+    </form>
+  </section>
+
+  <!-- Dashboard -->
+  <main id="dash" hidden>
+    <div class="topplinje">
+      <div class="wordmark"><span class="strek"></span>svipp</div>
+      <div class="tittel-blokk">
+        <h1>Kontrolltårnet</h1>
+        <span class="oppdatert"><span class="live-prikk"></span><span id="oppdatert-tid">—</span></span>
+      </div>
+      <div class="topp-hoyre">
+        <button class="logg-ut" id="logg-ut">Logg ut</button>
+        <button class="knapp-oppdater" id="oppdater">Oppdater</button>
+      </div>
+    </div>
+
+    <div class="dash-feil" id="dash-feil" hidden></div>
+
+    <!-- Rad 1 — tre store KPI-kort -->
+    <div class="rad rad-kpi">
+      <div class="kort kort-kpi">
+        <div class="merke">Estimert MRR</div>
+        <div class="verdi" id="kpi-mrr">—</div>
+        <div class="estimat-tag">Estimat</div>
+      </div>
+      <div class="kort kort-kpi">
+        <div class="merke">Aktive brukere</div>
+        <div class="verdi" id="kpi-brukere">—</div>
+        <div class="under"><span class="delta-opp" id="kpi-brukere-delta">—</span> siste 7 dager</div>
+      </div>
+      <div class="kort kort-kpi">
+        <div class="merke">Sveips i dag</div>
+        <div class="verdi" id="kpi-sveips">—</div>
+        <div class="under"><span id="kpi-sendrate">—</span> send-rate</div>
+      </div>
+    </div>
+
+    <!-- Rad 2 — to grafer -->
+    <div class="rad rad-graf">
+      <div class="kort kort-graf">
+        <div class="merke">Brukervekst — 30 dager</div>
+        <div class="canvas-wrap"><canvas id="graf-vekst"></canvas></div>
+      </div>
+      <div class="kort kort-graf">
+        <div class="merke">Sveips per dag — høyre vs. venstre</div>
+        <div class="canvas-wrap"><canvas id="graf-sveips"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Rad 3 — mindre kort -->
+    <div class="rad rad-mindre">
+      <div class="kort kort-mindre kort-levering">
+        <div class="merke">Leveringsrate</div>
+        <div class="verdi" id="m-levering">—</div>
+        <div class="under" id="m-levering-under">Bekreftet levert</div>
+      </div>
+      <div class="kort kort-mindre">
+        <div class="merke">Konvertering — paywall → kjøp</div>
+        <div class="verdi" id="m-konvertering">—</div>
+        <div class="under" id="m-konvertering-under">Av viste paywalls</div>
+      </div>
+      <div class="kort kort-mindre">
+        <div class="merke">Abonnenter per plan</div>
+        <div class="plan-liste" id="m-planer"><div class="under" style="margin-top:2px">—</div></div>
+      </div>
+    </div>
+
+    <!-- Reservert for Fase 3 — RESERVER PLASS, IKKE BYGG -->
+    <section class="reservert" aria-hidden="true">
+      <h2>AI og økonomi</h2>
+      <p>Kommer</p>
+    </section>
+  </main>
+
+  <!-- CDN: Supabase JS + Chart.js. Ingen build-steg. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    /* ---- Konfig (kun offentlige verdier: prosjekt-URL + anon-nøkkel) ---- */
+    const SUPABASE_URL = 'https://lfinuqiavodzagstkile.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmaW51cWlhdm9kemFnc3RraWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTY1NDEsImV4cCI6MjA5MDYzMjU0MX0.iTW5Zph8NeJuVYC5Y2SFFIRPlcOO-Xqu3dfxg5w5CME';
+    const METRICS_URL = SUPABASE_URL + '/functions/v1/admin-metrics';
+
+    // Grasiøs feil hvis CDN-bibliotekene ikke lastet (f.eks. uten nett).
+    if (!window.supabase || !window.supabase.createClient) {
+      document.getElementById('boot').textContent =
+        'Kunne ikke laste inn nødvendige bibliotek. Sjekk nettforbindelsen og last siden på nytt.';
+      return;
+    }
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true }
+    });
+
+    /* ---------------------------------------------------------------
+       KONTRAKT mot admin-metrics (Fase 3 leverer dataene).
+       Frontend leser defensivt — flere kandidat-nøkler pr. felt slik at
+       små navneforskjeller i backend ikke knekker visningen.
+       Forventet respons (topp-nivå):
+         brukere, sveips, soknader, inntekt_estimat, konvertering, daglig_serie
+       --------------------------------------------------------------- */
+
+    /* ---- Hjelpere ---- */
+    const $ = (id) => document.getElementById(id);
+
+    // Hent første definerte verdi blant flere kandidat-stier ("a.b" støttes).
+    function pick(obj, paths, fallback) {
+      if (!obj) return fallback;
+      for (const p of paths) {
+        let cur = obj, ok = true;
+        for (const key of p.split('.')) {
+          if (cur != null && typeof cur === 'object' && key in cur) cur = cur[key];
+          else { ok = false; break; }
+        }
+        if (ok && cur != null && cur !== '') return cur;
+      }
+      return fallback;
+    }
+    const toNum = (v, d = 0) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
+    // Normaliser rate til prosent (0–100): brøk (≤1) → *100, ellers som er.
+    function toPct(v, d = null) {
+      if (v == null || v === '') return d;
+      let n = Number(v); if (!Number.isFinite(n)) return d;
+      if (n > 0 && n <= 1) n *= 100;
+      return n;
+    }
+
+    const nfInt = new Intl.NumberFormat('nb-NO', { maximumFractionDigits: 0 });
+    const nfNok = new Intl.NumberFormat('nb-NO', { style: 'currency', currency: 'NOK', maximumFractionDigits: 0 });
+    const fmtInt = (n) => nfInt.format(Math.round(n));
+    const fmtNok = (n) => nfNok.format(Math.round(n));
+    const fmtPct = (n) => nfInt.format(Math.round(n * 10) / 10 % 1 === 0 ? Math.round(n) : Math.round(n * 10) / 10)
+      .replace(/,0$/, '') + ' %';
+
+    // Count-up-animasjon (respekterer redusert bevegelse).
+    function countUp(el, target, fmt) {
+      if (!el) return;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduced || !Number.isFinite(target)) { el.textContent = fmt(target || 0); return; }
+      const dur = 900, t0 = performance.now(), from = 0;
+      function step(now) {
+        const p = Math.min(1, (now - t0) / dur);
+        const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+        el.textContent = fmt(from + (target - from) * eased);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = fmt(target);
+      }
+      requestAnimationFrame(step);
+    }
+
+    function visSeksjon(navn) {
+      $('boot').hidden = navn !== 'boot';
+      $('login').hidden = navn !== 'login';
+      $('dash').hidden = navn !== 'dash';
+    }
+
+    /* ---- Innlogging ---- */
+    const loginForm = $('login-form');
+    const loginKnapp = $('login-knapp');
+    const loginFeil = $('login-feil');
+
+    function visLoginFeil(melding) {
+      loginFeil.textContent = melding;
+      loginFeil.hidden = false;
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginFeil.hidden = true;
+      loginKnapp.disabled = true;
+      loginKnapp.textContent = 'Logger inn…';
+      const email = $('epost').value.trim();
+      const password = $('passord').value;
+      try {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+          visLoginFeil('Innlogging feilet. Sjekk e-post og passord.');
+          return;
+        }
+        await lastDashboard();
+      } catch (err) {
+        visLoginFeil('Noe gikk galt. Prøv igjen.');
+      } finally {
+        loginKnapp.disabled = false;
+        loginKnapp.textContent = 'Logg inn';
+      }
+    });
+
+    async function loggUt(melding) {
+      try { await sb.auth.signOut(); } catch (_) {}
+      $('passord').value = '';
+      if (melding) visLoginFeil(melding); else loginFeil.hidden = true;
+      visSeksjon('login');
+    }
+    $('logg-ut').addEventListener('click', loggUt);
+    $('oppdater').addEventListener('click', () => lastDashboard(true));
+
+    /* ---- Datainnhenting ---- */
+    async function lastDashboard(erOppdatering) {
+      const knapp = $('oppdater');
+      if (erOppdatering) { knapp.disabled = true; knapp.textContent = 'Oppdaterer…'; }
+
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { visSeksjon('login'); return; }
+
+      try {
+        const res = await fetch(METRICS_URL, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + session.access_token,
+            'apikey': SUPABASE_ANON_KEY
+          }
+        });
+
+        // 403: admin-låst — ingen tilgang for denne brukeren.
+        if (res.status === 403) {
+          await loggUt('Ingen tilgang.');
+          return;
+        }
+        if (!res.ok) {
+          throw new Error('HTTP ' + res.status);
+        }
+
+        const data = await res.json();
+        visSeksjon('dash');
+        renderDashboard(data);
+        $('dash-feil').hidden = true;
+      } catch (err) {
+        // Vis dashbordet med feilbanner (f.eks. før admin-metrics er deployet i Fase 3).
+        visSeksjon('dash');
+        const banner = $('dash-feil');
+        banner.textContent = 'Klarte ikke å hente driftstall akkurat nå. Prøv «Oppdater» igjen.';
+        banner.hidden = false;
+      } finally {
+        if (erOppdatering) { knapp.disabled = false; knapp.textContent = 'Oppdater'; }
+      }
+    }
+
+    /* ---- Rendering ---- */
+    let grafVekst = null, grafSveips = null;
+
+    function renderDashboard(d) {
+      d = d || {};
+      const brukere = pick(d, ['brukere'], {});
+      const sveips = pick(d, ['sveips'], {});
+      const soknader = pick(d, ['soknader'], {});
+      const inntekt = pick(d, ['inntekt_estimat', 'inntekt'], {});
+      const konv = pick(d, ['konvertering'], {});
+      const serie = pick(d, ['daglig_serie', 'serie'], []) || [];
+
+      /* Sist oppdatert */
+      const tid = new Date().toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
+      $('oppdatert-tid').textContent = 'Sist oppdatert ' + tid;
+
+      /* --- Rad 1: KPI --- */
+      const mrr = toNum(pick(inntekt, ['mrr', 'estimert_mrr', 'belop', 'nok'],
+                             typeof inntekt === 'number' ? inntekt : 0));
+      countUp($('kpi-mrr'), mrr, fmtNok);
+
+      const aktive = toNum(pick(brukere, ['aktive', 'total', 'totalt', 'antall'],
+                                typeof brukere === 'number' ? brukere : 0));
+      countUp($('kpi-brukere'), aktive, fmtInt);
+
+      const nye7 = toNum(pick(brukere, ['nye_siste_7d', 'nye_7d', 'siste_7_dager', 'vekst_7d', 'delta_7d'], 0));
+      $('kpi-brukere-delta').textContent = '+' + fmtInt(nye7);
+
+      const sveipsIDag = toNum(pick(sveips, ['i_dag', 'idag', 'today', 'total_i_dag', 'total'],
+                                    typeof sveips === 'number' ? sveips : 0));
+      countUp($('kpi-sveips'), sveipsIDag, fmtInt);
+
+      // Send-rate: eksplisitt felt, ellers høyre/(høyre+venstre) i dag, ellers søknader/sveips.
+      let sendRate = toPct(pick(sveips, ['send_rate', 'sendrate', 'hoyre_andel'], null), null);
+      if (sendRate == null) {
+        const h = toNum(pick(sveips, ['hoyre_i_dag', 'hoyre', 'right_i_dag', 'right'], NaN));
+        const v = toNum(pick(sveips, ['venstre_i_dag', 'venstre', 'left_i_dag', 'left'], NaN));
+        if (Number.isFinite(h) && Number.isFinite(v) && (h + v) > 0) sendRate = (h / (h + v)) * 100;
+      }
+      if (sendRate == null) {
+        const sendtIDag = toNum(pick(soknader, ['i_dag', 'sendt_i_dag', 'sendt'], NaN));
+        if (Number.isFinite(sendtIDag) && sveipsIDag > 0) sendRate = (sendtIDag / sveipsIDag) * 100;
+      }
+      $('kpi-sendrate').textContent = sendRate == null ? '—' : fmtPct(sendRate);
+
+      /* --- Rad 3: mindre kort --- */
+      // Leveringsrate (tillitsanker)
+      let levering = toPct(pick(soknader, ['leveringsrate', 'levering_rate', 'levert_andel'], null), null);
+      if (levering == null) {
+        const levert = toNum(pick(soknader, ['levert', 'antall_levert'], NaN));
+        const sendt = toNum(pick(soknader, ['sendt', 'antall_sendt'], NaN));
+        if (Number.isFinite(levert) && Number.isFinite(sendt) && sendt > 0) levering = (levert / sendt) * 100;
+      }
+      $('m-levering').textContent = levering == null ? '—' : fmtPct(levering);
+
+      // Konvertering paywall → kjøp
+      const konvRate = toPct(pick(konv, ['paywall_til_kjop', 'rate', 'paywall_kjop', 'kjop_rate'],
+                                  typeof konv === 'number' ? konv : null), null);
+      $('m-konvertering').textContent = konvRate == null ? '—' : fmtPct(konvRate);
+
+      // Abonnenter per plan
+      renderPlaner(pick(d, ['abonnenter_per_plan', 'abonnenter', 'planer'],
+                        pick(inntekt, ['abonnenter_per_plan', 'planer'],
+                             pick(brukere, ['abonnenter_per_plan', 'abonnenter'], null))));
+
+      /* --- Rad 2: grafer --- */
+      renderGrafer(serie);
+    }
+
+    function renderPlaner(planer) {
+      const el = $('m-planer');
+      el.innerHTML = '';
+      // Normaliser til [{navn, antall}]
+      let rader = [];
+      if (Array.isArray(planer)) {
+        rader = planer.map((p) => ({
+          navn: pick(p, ['navn', 'plan', 'name'], 'Plan'),
+          antall: toNum(pick(p, ['antall', 'count', 'brukere'], 0))
+        }));
+      } else if (planer && typeof planer === 'object') {
+        rader = Object.keys(planer).map((k) => ({ navn: k, antall: toNum(planer[k]) }));
+      }
+      if (!rader.length) {
+        el.innerHTML = '<div class="under" style="margin-top:2px">Ingen data</div>';
+        return;
+      }
+      const maks = Math.max(1, ...rader.map((r) => r.antall));
+      for (const r of rader) {
+        const rad = document.createElement('div');
+        rad.className = 'plan-rad';
+        const navn = document.createElement('span'); navn.className = 'navn'; navn.textContent = r.navn;
+        const antall = document.createElement('span'); antall.className = 'antall'; antall.textContent = fmtInt(r.antall);
+        const bar = document.createElement('div'); bar.className = 'plan-bar';
+        const fyll = document.createElement('span'); fyll.style.width = Math.round((r.antall / maks) * 100) + '%';
+        bar.appendChild(fyll);
+        rad.appendChild(navn); rad.appendChild(antall); rad.appendChild(bar);
+        el.appendChild(rad);
+      }
+    }
+
+    function renderGrafer(serie) {
+      serie = Array.isArray(serie) ? serie : [];
+      const labels = serie.map((p) => {
+        const dato = pick(p, ['dato', 'dag', 'date'], '');
+        const dd = new Date(dato);
+        return isNaN(dd) ? String(dato) : dd.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' });
+      });
+
+      // Brukervekst: bruk kumulativ hvis tilgjengelig, ellers løpende sum av nye.
+      let kum = 0;
+      const harKum = serie.some((p) => pick(p, ['kumulativ_brukere', 'kum_brukere', 'brukere_totalt', 'totalt'], null) != null);
+      const vekst = serie.map((p) => {
+        if (harKum) return toNum(pick(p, ['kumulativ_brukere', 'kum_brukere', 'brukere_totalt', 'totalt'], 0));
+        kum += toNum(pick(p, ['nye_brukere', 'nye', 'brukere', 'signups'], 0));
+        return kum;
+      });
+
+      const hoyre = serie.map((p) => toNum(pick(p, ['sveips_hoyre', 'hoyre', 'right'], 0)));
+      const venstre = serie.map((p) => toNum(pick(p, ['sveips_venstre', 'venstre', 'left'], 0)));
+
+      const GRAPHITE = '#1D1D1F', GREEN = '#1D9E75', GREY = '#C7C7CC', TXT = '#86868B', GRID = 'rgba(0,0,0,.06)';
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const baseOpts = {
+        responsive: true, maintainAspectRatio: false,
+        animation: reduced ? false : { duration: 700 },
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: TXT, maxRotation: 0, autoSkip: true, maxTicksLimit: 8, font: { size: 11 } } },
+          y: { beginAtZero: true, grid: { color: GRID, drawBorder: false }, ticks: { color: TXT, precision: 0, font: { size: 11 } } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: GRAPHITE, padding: 10, cornerRadius: 8, titleFont: { size: 12 }, bodyFont: { size: 12 } }
+        }
+      };
+
+      // Linje — brukervekst (grafitt, struktur)
+      if (grafVekst) grafVekst.destroy();
+      grafVekst = new Chart($('graf-vekst'), {
+        type: 'line',
+        data: { labels, datasets: [{
+          data: vekst, borderColor: GRAPHITE, borderWidth: 2,
+          pointRadius: 0, pointHoverRadius: 4, tension: .3,
+          fill: true, backgroundColor: 'rgba(29,29,31,.05)'
+        }] },
+        options: baseOpts
+      });
+
+      // Stablet søyle — høyre (grønn = sendt/bekreftet) vs venstre (grå)
+      if (grafSveips) grafSveips.destroy();
+      grafSveips = new Chart($('graf-sveips'), {
+        type: 'bar',
+        data: { labels, datasets: [
+          { label: 'Venstre', data: venstre, backgroundColor: GREY, stack: 's', borderRadius: 2, maxBarThickness: 22 },
+          { label: 'Høyre',   data: hoyre,   backgroundColor: GREEN, stack: 's', borderRadius: 2, maxBarThickness: 22 }
+        ] },
+        options: Object.assign({}, baseOpts, {
+          plugins: Object.assign({}, baseOpts.plugins, { legend: {
+            display: true, position: 'bottom',
+            labels: { color: TXT, boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } }
+          } }),
+          scales: {
+            x: Object.assign({ stacked: true }, baseOpts.scales.x),
+            y: Object.assign({ stacked: true }, baseOpts.scales.y)
+          }
+        })
+      });
+    }
+
+    /* ---- Oppstart ---- */
+    (async function init() {
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) await lastDashboard();
+        else visSeksjon('login');
+      } catch (_) {
+        visSeksjon('login');
+      }
+    })();
+  })();
+  </script>
+</body>
+</html>
