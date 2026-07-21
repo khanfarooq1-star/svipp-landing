@@ -94,6 +94,26 @@
     }
     .knapp-primar:hover { background: #000; }
     .knapp-primar:disabled { opacity: .55; cursor: default; }
+    /* GitHub-innlogging — primær, tydeligste vei. Grafitt (ikke coral). */
+    .knapp-github {
+      margin-top: 0; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .knapp-github svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
+    /* «eller»-skille mellom GitHub og e-post/passord-fallback */
+    .skille {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0 16px; color: var(--grey); font-size: 12px; letter-spacing: .3px;
+    }
+    .skille::before, .skille::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    /* Sekundær knapp — e-post/passord-fallback (grafitt kontur, ikke coral) */
+    .knapp-sekundar {
+      width: 100%; margin-top: 8px; padding: 13px; font-size: 15px; font-weight: 700;
+      font-family: var(--font); color: var(--graphite); background: transparent;
+      border: 1px solid var(--border-strong); border-radius: 12px; cursor: pointer; letter-spacing: -.2px;
+      transition: border-color .15s ease, background .15s ease, opacity .15s ease;
+    }
+    .knapp-sekundar:hover { border-color: var(--graphite); background: var(--bg); }
+    .knapp-sekundar:disabled { opacity: .55; cursor: default; }
     .feilmelding {
       margin-top: 14px; font-size: 13.5px; color: var(--graphite);
       background: #FBEEE6; border: 1px solid #F0D9C8; color: #8A4B22;
@@ -240,6 +260,13 @@
       <h1>Kontrolltårnet</h1>
       <p class="sub">Logg inn for å se driftstall.</p>
 
+      <button class="knapp-primar knapp-github" id="github-knapp" type="button">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span class="gh-label">Logg inn med GitHub</span>
+      </button>
+
+      <div class="skille">eller</div>
+
       <div class="felt">
         <label for="epost">E-post</label>
         <input id="epost" name="email" type="email" inputmode="email" autocomplete="email" required>
@@ -249,7 +276,7 @@
         <input id="passord" name="password" type="password" autocomplete="current-password" required>
       </div>
 
-      <button class="knapp-primar" id="login-knapp" type="submit">Logg inn</button>
+      <button class="knapp-sekundar" id="login-knapp" type="submit">Logg inn med e-post</button>
       <div class="feilmelding" id="login-feil" hidden></div>
     </form>
   </section>
@@ -347,8 +374,30 @@
     }
 
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true }
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        // GitHub OAuth: Supabase legger tokenet i URL-hash ved redirect tilbake
+        // til /admin/. detectSessionInUrl fanger og lagrer sesjonen automatisk.
+        detectSessionInUrl: true,
+        flowType: 'implicit'
+      }
     });
+
+    // Fang ev. OAuth-feil fra redirect-hash før klienten rydder den bort
+    // (f.eks. hvis GitHub-provideren ikke er aktivert i Supabase).
+    let oauthFeilmelding = null;
+    {
+      const h = window.location.hash || '';
+      if (h.indexOf('error') !== -1) {
+        const p = new URLSearchParams(h.replace(/^#/, ''));
+        if (p.get('error')) {
+          const d = p.get('error_description');
+          oauthFeilmelding = d ? decodeURIComponent(d.replace(/\+/g, ' '))
+                               : 'GitHub-innlogging ble avbrutt.';
+        }
+      }
+    }
 
     /* ---------------------------------------------------------------
        KONTRAKT mot admin-metrics (Fase 3 leverer dataene).
@@ -422,11 +471,31 @@
       loginFeil.hidden = false;
     }
 
+    // GitHub OAuth — primær innloggingsvei. Redirect tilbake til /admin/.
+    const githubKnapp = $('github-knapp');
+    githubKnapp.addEventListener('click', async () => {
+      loginFeil.hidden = true;
+      githubKnapp.disabled = true;
+      githubKnapp.querySelector('.gh-label').textContent = 'Åpner GitHub…';
+      try {
+        const { error } = await sb.auth.signInWithOAuth({
+          provider: 'github',
+          options: { redirectTo: window.location.origin + '/admin/' }
+        });
+        if (error) throw error;
+        // Ved suksess navigerer nettleseren til GitHub — ingen videre handling her.
+      } catch (err) {
+        visLoginFeil('Kunne ikke starte GitHub-innlogging. Prøv igjen.');
+        githubKnapp.disabled = false;
+        githubKnapp.querySelector('.gh-label').textContent = 'Logg inn med GitHub';
+      }
+    });
+
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       loginFeil.hidden = true;
       loginKnapp.disabled = true;
-      loginKnapp.textContent = 'Logger inn…';
+      loginKnapp.textContent = 'Logger inn …';
       const email = $('epost').value.trim();
       const password = $('passord').value;
       try {
@@ -440,7 +509,7 @@
         visLoginFeil('Noe gikk galt. Prøv igjen.');
       } finally {
         loginKnapp.disabled = false;
-        loginKnapp.textContent = 'Logg inn';
+        loginKnapp.textContent = 'Logg inn med e-post';
       }
     });
 
@@ -667,9 +736,12 @@
     (async function init() {
       try {
         const { data: { session } } = await sb.auth.getSession();
-        if (session) await lastDashboard();
-        else visSeksjon('login');
+        if (session) { await lastDashboard(); return; }
+        // Ingen sesjon → vis innlogging, med ev. OAuth-feil fra redirect.
+        if (oauthFeilmelding) visLoginFeil(oauthFeilmelding);
+        visSeksjon('login');
       } catch (_) {
+        if (oauthFeilmelding) visLoginFeil(oauthFeilmelding);
         visSeksjon('login');
       }
     })();
