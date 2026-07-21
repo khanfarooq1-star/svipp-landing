@@ -94,26 +94,24 @@
     }
     .knapp-primar:hover { background: #000; }
     .knapp-primar:disabled { opacity: .55; cursor: default; }
-    /* GitHub-innlogging — primær, tydeligste vei. Grafitt (ikke coral). */
-    .knapp-github {
-      margin-top: 0; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    /* Status etter at kode er sendt */
+    .kode-status {
+      font-size: 13.5px; color: var(--grey); line-height: 1.5; margin-bottom: 18px;
     }
-    .knapp-github svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
-    /* «eller»-skille mellom GitHub og e-post/passord-fallback */
-    .skille {
-      display: flex; align-items: center; gap: 12px;
-      margin: 20px 0 16px; color: var(--grey); font-size: 12px; letter-spacing: .3px;
+    /* Engangskode-input — stor, midtstilt, sifferavstand */
+    .kode-input {
+      text-align: center; font-size: 22px; font-weight: 700;
+      letter-spacing: 8px; font-variant-numeric: tabular-nums;
     }
-    .skille::before, .skille::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-    /* Sekundær knapp — e-post/passord-fallback (grafitt kontur, ikke coral) */
-    .knapp-sekundar {
-      width: 100%; margin-top: 8px; padding: 13px; font-size: 15px; font-weight: 700;
-      font-family: var(--font); color: var(--graphite); background: transparent;
-      border: 1px solid var(--border-strong); border-radius: 12px; cursor: pointer; letter-spacing: -.2px;
-      transition: border-color .15s ease, background .15s ease, opacity .15s ease;
+    .kode-input::placeholder { letter-spacing: 8px; color: var(--border-strong); }
+    /* Tekst-lenker under kode-feltet (grå, ikke coral) */
+    .lenke-rad { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; }
+    .lenke-knapp {
+      background: none; border: none; padding: 4px 0; cursor: pointer;
+      font-family: var(--font); font-size: 13px; color: var(--grey);
     }
-    .knapp-sekundar:hover { border-color: var(--graphite); background: var(--bg); }
-    .knapp-sekundar:disabled { opacity: .55; cursor: default; }
+    .lenke-knapp:hover:not(:disabled) { color: var(--graphite); }
+    .lenke-knapp:disabled { opacity: .5; cursor: default; }
     .feilmelding {
       margin-top: 14px; font-size: 13.5px; color: var(--graphite);
       background: #FBEEE6; border: 1px solid #F0D9C8; color: #8A4B22;
@@ -253,32 +251,39 @@
   <!-- Boot / sesjonssjekk -->
   <div id="boot">Laster…</div>
 
-  <!-- Innlogging -->
+  <!-- Innlogging — e-post + engangskode (samme metode som Svipp-appen) -->
   <section id="login" hidden>
-    <form class="login-kort" id="login-form" autocomplete="on">
+    <div class="login-kort">
       <div class="wordmark"><span class="strek"></span>svipp</div>
       <h1>Kontrolltårnet</h1>
-      <p class="sub">Logg inn for å se driftstall.</p>
+      <p class="sub" id="login-sub">Logg inn med e-post for å se driftstall.</p>
 
-      <button class="knapp-primar knapp-github" id="github-knapp" type="button">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-        <span class="gh-label">Logg inn med GitHub</span>
-      </button>
+      <!-- Steg 1: e-post -->
+      <form id="steg-epost" autocomplete="on">
+        <div class="felt">
+          <label for="epost">E-post</label>
+          <input id="epost" name="email" type="email" inputmode="email" autocomplete="email" required>
+        </div>
+        <button class="knapp-primar" id="send-kode-knapp" type="submit">Send meg kode</button>
+      </form>
 
-      <div class="skille">eller</div>
+      <!-- Steg 2: engangskode -->
+      <form id="steg-kode" autocomplete="one-time-code" hidden>
+        <p class="kode-status" id="kode-status"></p>
+        <div class="felt">
+          <label for="kode">Engangskode</label>
+          <input id="kode" name="one-time-code" type="text" inputmode="numeric" autocomplete="one-time-code"
+                 maxlength="6" pattern="\d{6}" class="kode-input" placeholder="••••••" required>
+        </div>
+        <button class="knapp-primar" id="verify-knapp" type="submit">Logg inn</button>
+        <div class="lenke-rad">
+          <button class="lenke-knapp" id="ny-kode-knapp" type="button">Send ny kode</button>
+          <button class="lenke-knapp" id="annen-epost-knapp" type="button">Bruk annen e-post</button>
+        </div>
+      </form>
 
-      <div class="felt">
-        <label for="epost">E-post</label>
-        <input id="epost" name="email" type="email" inputmode="email" autocomplete="email" required>
-      </div>
-      <div class="felt">
-        <label for="passord">Passord</label>
-        <input id="passord" name="password" type="password" autocomplete="current-password" required>
-      </div>
-
-      <button class="knapp-sekundar" id="login-knapp" type="submit">Logg inn med e-post</button>
       <div class="feilmelding" id="login-feil" hidden></div>
-    </form>
+    </div>
   </section>
 
   <!-- Dashboard -->
@@ -377,15 +382,16 @@
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        // GitHub OAuth: Supabase legger tokenet i URL-hash ved redirect tilbake
-        // til /admin/. detectSessionInUrl fanger og lagrer sesjonen automatisk.
+        // Magic-link-fallback: klikker admin lenken i e-posten i stedet for å
+        // skrive koden, legger Supabase tokenet i URL-hash ved retur til /admin/.
+        // detectSessionInUrl fanger og lagrer sesjonen automatisk.
         detectSessionInUrl: true,
         flowType: 'implicit'
       }
     });
 
-    // Fang ev. OAuth-feil fra redirect-hash før klienten rydder den bort
-    // (f.eks. hvis GitHub-provideren ikke er aktivert i Supabase).
+    // Fang ev. auth-feil fra redirect-hash før klienten rydder den bort
+    // (f.eks. utløpt magic-link).
     let oauthFeilmelding = null;
     {
       const h = window.location.hash || '';
@@ -394,7 +400,7 @@
         if (p.get('error')) {
           const d = p.get('error_description');
           oauthFeilmelding = d ? decodeURIComponent(d.replace(/\+/g, ' '))
-                               : 'GitHub-innlogging ble avbrutt.';
+                               : 'Innloggingslenken var ugyldig eller utløpt.';
         }
       }
     }
@@ -461,61 +467,139 @@
       $('dash').hidden = navn !== 'dash';
     }
 
-    /* ---- Innlogging ---- */
-    const loginForm = $('login-form');
-    const loginKnapp = $('login-knapp');
+    /* ---- Innlogging — e-post + engangskode (speiler Svipp-appen:
+           signInWithOtp for å sende, verifyOtp({ type: 'email' }) for å bekrefte) ---- */
+    const stegEpost = $('steg-epost');
+    const stegKode = $('steg-kode');
+    const epostFelt = $('epost');
+    const kodeFelt = $('kode');
+    const sendKnapp = $('send-kode-knapp');
+    const verifyKnapp = $('verify-knapp');
+    const nyKodeKnapp = $('ny-kode-knapp');
     const loginFeil = $('login-feil');
+
+    let gjeldendeEpost = '';
+    let cooldownId = null;
 
     function visLoginFeil(melding) {
       loginFeil.textContent = melding;
       loginFeil.hidden = false;
     }
 
-    // GitHub OAuth — primær innloggingsvei. Redirect tilbake til /admin/.
-    const githubKnapp = $('github-knapp');
-    githubKnapp.addEventListener('click', async () => {
+    // Send engangskode. shouldCreateUser:false → admin-verktøyet oppretter aldri
+    // nye kontoer. emailRedirectTo gir magic-link-fallback tilbake til /admin/.
+    async function sendKode(epost) {
+      const { error } = await sb.auth.signInWithOtp({
+        email: epost,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: window.location.origin + '/admin/'
+        }
+      });
+      if (error) throw error;
+    }
+
+    function startCooldown(sek) {
+      let igjen = sek;
+      clearInterval(cooldownId);
+      nyKodeKnapp.disabled = true;
+      nyKodeKnapp.textContent = 'Send ny kode (' + igjen + 's)';
+      cooldownId = setInterval(() => {
+        igjen -= 1;
+        if (igjen <= 0) {
+          clearInterval(cooldownId);
+          nyKodeKnapp.disabled = false;
+          nyKodeKnapp.textContent = 'Send ny kode';
+        } else {
+          nyKodeKnapp.textContent = 'Send ny kode (' + igjen + 's)';
+        }
+      }, 1000);
+    }
+
+    function feilTilTekst(err, kontekst) {
+      const m = (err && err.message) ? err.message : '';
+      if (/not allowed|Signups not allowed|not found/i.test(m)) return 'Denne e-postadressen har ikke tilgang.';
+      if (kontekst === 'verify' && /expired/i.test(m)) return 'Koden er utløpt — be om ny kode.';
+      if (kontekst === 'verify' && /invalid|token/i.test(m)) return 'Feil kode — prøv igjen.';
+      if (/rate|too many|429/i.test(m)) return 'For mange forsøk. Vent litt og prøv igjen.';
+      return kontekst === 'verify' ? 'Verifisering feilet. Prøv igjen.' : 'Kunne ikke sende kode. Prøv igjen.';
+    }
+
+    // Steg 1: send kode
+    stegEpost.addEventListener('submit', async (e) => {
+      e.preventDefault();
       loginFeil.hidden = true;
-      githubKnapp.disabled = true;
-      githubKnapp.querySelector('.gh-label').textContent = 'Åpner GitHub…';
+      const epost = epostFelt.value.trim();
+      if (!epost.includes('@')) { visLoginFeil('Skriv inn en gyldig e-postadresse.'); return; }
+      sendKnapp.disabled = true;
+      sendKnapp.textContent = 'Sender …';
       try {
-        const { error } = await sb.auth.signInWithOAuth({
-          provider: 'github',
-          options: { redirectTo: window.location.origin + '/admin/' }
-        });
-        if (error) throw error;
-        // Ved suksess navigerer nettleseren til GitHub — ingen videre handling her.
+        await sendKode(epost);
+        gjeldendeEpost = epost;
+        $('kode-status').textContent = 'Vi sendte en 6-sifret kode til ' + epost + '. Sjekk e-posten og skriv den inn under.';
+        stegEpost.hidden = true;
+        stegKode.hidden = false;
+        kodeFelt.value = '';
+        kodeFelt.focus();
+        startCooldown(60);
       } catch (err) {
-        visLoginFeil('Kunne ikke starte GitHub-innlogging. Prøv igjen.');
-        githubKnapp.disabled = false;
-        githubKnapp.querySelector('.gh-label').textContent = 'Logg inn med GitHub';
+        visLoginFeil(feilTilTekst(err, 'send'));
+      } finally {
+        sendKnapp.disabled = false;
+        sendKnapp.textContent = 'Send meg kode';
       }
     });
 
-    loginForm.addEventListener('submit', async (e) => {
+    // Steg 2: verifiser kode
+    stegKode.addEventListener('submit', async (e) => {
       e.preventDefault();
       loginFeil.hidden = true;
-      loginKnapp.disabled = true;
-      loginKnapp.textContent = 'Logger inn …';
-      const email = $('epost').value.trim();
-      const password = $('passord').value;
+      const token = kodeFelt.value.trim();
+      if (!/^\d{6}$/.test(token)) { visLoginFeil('Skriv inn den 6-sifrede koden.'); return; }
+      verifyKnapp.disabled = true;
+      verifyKnapp.textContent = 'Logger inn …';
       try {
-        const { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) {
-          visLoginFeil('Innlogging feilet. Sjekk e-post og passord.');
-          return;
-        }
+        const { error } = await sb.auth.verifyOtp({ email: gjeldendeEpost, token, type: 'email' });
+        if (error) throw error;
+        clearInterval(cooldownId);
         await lastDashboard();
       } catch (err) {
-        visLoginFeil('Noe gikk galt. Prøv igjen.');
+        visLoginFeil(feilTilTekst(err, 'verify'));
       } finally {
-        loginKnapp.disabled = false;
-        loginKnapp.textContent = 'Logg inn med e-post';
+        verifyKnapp.disabled = false;
+        verifyKnapp.textContent = 'Logg inn';
       }
+    });
+
+    // Send ny kode
+    nyKodeKnapp.addEventListener('click', async () => {
+      if (nyKodeKnapp.disabled || !gjeldendeEpost) return;
+      loginFeil.hidden = true;
+      try {
+        await sendKode(gjeldendeEpost);
+        $('kode-status').textContent = 'Ny kode sendt til ' + gjeldendeEpost + '.';
+        startCooldown(60);
+      } catch (err) {
+        visLoginFeil(feilTilTekst(err, 'send'));
+      }
+    });
+
+    // Bruk annen e-post → tilbake til steg 1
+    $('annen-epost-knapp').addEventListener('click', () => {
+      clearInterval(cooldownId);
+      loginFeil.hidden = true;
+      kodeFelt.value = '';
+      stegKode.hidden = true;
+      stegEpost.hidden = false;
+      epostFelt.focus();
     });
 
     async function loggUt(melding) {
       try { await sb.auth.signOut(); } catch (_) {}
-      $('passord').value = '';
+      clearInterval(cooldownId);
+      kodeFelt.value = '';
+      stegKode.hidden = true;
+      stegEpost.hidden = false;
       if (melding) visLoginFeil(melding); else loginFeil.hidden = true;
       visSeksjon('login');
     }
