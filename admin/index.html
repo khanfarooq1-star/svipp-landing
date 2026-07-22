@@ -94,6 +94,24 @@
     }
     .knapp-primar:hover { background: #000; }
     .knapp-primar:disabled { opacity: .55; cursor: default; }
+    /* Status etter at kode er sendt */
+    .kode-status {
+      font-size: 13.5px; color: var(--grey); line-height: 1.5; margin-bottom: 18px;
+    }
+    /* Engangskode-input — stor, midtstilt, sifferavstand */
+    .kode-input {
+      text-align: center; font-size: 22px; font-weight: 700;
+      letter-spacing: 8px; font-variant-numeric: tabular-nums;
+    }
+    .kode-input::placeholder { letter-spacing: 8px; color: var(--border-strong); }
+    /* Tekst-lenker under kode-feltet (grå, ikke coral) */
+    .lenke-rad { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; }
+    .lenke-knapp {
+      background: none; border: none; padding: 4px 0; cursor: pointer;
+      font-family: var(--font); font-size: 13px; color: var(--grey);
+    }
+    .lenke-knapp:hover:not(:disabled) { color: var(--graphite); }
+    .lenke-knapp:disabled { opacity: .5; cursor: default; }
     .feilmelding {
       margin-top: 14px; font-size: 13.5px; color: var(--graphite);
       background: #FBEEE6; border: 1px solid #F0D9C8; color: #8A4B22;
@@ -233,25 +251,39 @@
   <!-- Boot / sesjonssjekk -->
   <div id="boot">Laster…</div>
 
-  <!-- Innlogging -->
+  <!-- Innlogging — e-post + engangskode (samme metode som Svipp-appen) -->
   <section id="login" hidden>
-    <form class="login-kort" id="login-form" autocomplete="on">
+    <div class="login-kort">
       <div class="wordmark"><span class="strek"></span>svipp</div>
       <h1>Kontrolltårnet</h1>
-      <p class="sub">Logg inn for å se driftstall.</p>
+      <p class="sub" id="login-sub">Logg inn med e-post for å se driftstall.</p>
 
-      <div class="felt">
-        <label for="epost">E-post</label>
-        <input id="epost" name="email" type="email" inputmode="email" autocomplete="email" required>
-      </div>
-      <div class="felt">
-        <label for="passord">Passord</label>
-        <input id="passord" name="password" type="password" autocomplete="current-password" required>
-      </div>
+      <!-- Steg 1: e-post -->
+      <form id="steg-epost" autocomplete="on">
+        <div class="felt">
+          <label for="epost">E-post</label>
+          <input id="epost" name="email" type="email" inputmode="email" autocomplete="email" required>
+        </div>
+        <button class="knapp-primar" id="send-kode-knapp" type="submit">Send meg kode</button>
+      </form>
 
-      <button class="knapp-primar" id="login-knapp" type="submit">Logg inn</button>
+      <!-- Steg 2: engangskode -->
+      <form id="steg-kode" autocomplete="one-time-code" hidden>
+        <p class="kode-status" id="kode-status"></p>
+        <div class="felt">
+          <label for="kode">Engangskode</label>
+          <input id="kode" name="one-time-code" type="text" inputmode="numeric" autocomplete="one-time-code"
+                 maxlength="6" pattern="\d{6}" class="kode-input" placeholder="••••••" required>
+        </div>
+        <button class="knapp-primar" id="verify-knapp" type="submit">Logg inn</button>
+        <div class="lenke-rad">
+          <button class="lenke-knapp" id="ny-kode-knapp" type="button">Send ny kode</button>
+          <button class="lenke-knapp" id="annen-epost-knapp" type="button">Bruk annen e-post</button>
+        </div>
+      </form>
+
       <div class="feilmelding" id="login-feil" hidden></div>
-    </form>
+    </div>
   </section>
 
   <!-- Dashboard -->
@@ -337,7 +369,9 @@
     /* ---- Konfig (kun offentlige verdier: prosjekt-URL + anon-nøkkel) ---- */
     const SUPABASE_URL = 'https://lfinuqiavodzagstkile.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmaW51cWlhdm9kemFnc3RraWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTY1NDEsImV4cCI6MjA5MDYzMjU0MX0.iTW5Zph8NeJuVYC5Y2SFFIRPlcOO-Xqu3dfxg5w5CME';
-    const METRICS_URL = SUPABASE_URL + '/functions/v1/admin-metrics';
+    // Datamotoren lever i Railway-backenden (ikke en Supabase edge function).
+    // Admin-gaten der validerer brukerens Supabase-JWT mot ADMIN_USER_ID.
+    const METRICS_URL = 'https://api.svipp.app/api/admin/metrics';
 
     // Grasiøs feil hvis CDN-bibliotekene ikke lastet (f.eks. uten nett).
     if (!window.supabase || !window.supabase.createClient) {
@@ -347,8 +381,31 @@
     }
 
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true }
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        // Magic-link-fallback: klikker admin lenken i e-posten i stedet for å
+        // skrive koden, legger Supabase tokenet i URL-hash ved retur til /admin/.
+        // detectSessionInUrl fanger og lagrer sesjonen automatisk.
+        detectSessionInUrl: true,
+        flowType: 'implicit'
+      }
     });
+
+    // Fang ev. auth-feil fra redirect-hash før klienten rydder den bort
+    // (f.eks. utløpt magic-link).
+    let oauthFeilmelding = null;
+    {
+      const h = window.location.hash || '';
+      if (h.indexOf('error') !== -1) {
+        const p = new URLSearchParams(h.replace(/^#/, ''));
+        if (p.get('error')) {
+          const d = p.get('error_description');
+          oauthFeilmelding = d ? decodeURIComponent(d.replace(/\+/g, ' '))
+                               : 'Innloggingslenken var ugyldig eller utløpt.';
+        }
+      }
+    }
 
     /* ---------------------------------------------------------------
        KONTRAKT mot admin-metrics (Fase 3 leverer dataene).
@@ -412,41 +469,139 @@
       $('dash').hidden = navn !== 'dash';
     }
 
-    /* ---- Innlogging ---- */
-    const loginForm = $('login-form');
-    const loginKnapp = $('login-knapp');
+    /* ---- Innlogging — e-post + engangskode (speiler Svipp-appen:
+           signInWithOtp for å sende, verifyOtp({ type: 'email' }) for å bekrefte) ---- */
+    const stegEpost = $('steg-epost');
+    const stegKode = $('steg-kode');
+    const epostFelt = $('epost');
+    const kodeFelt = $('kode');
+    const sendKnapp = $('send-kode-knapp');
+    const verifyKnapp = $('verify-knapp');
+    const nyKodeKnapp = $('ny-kode-knapp');
     const loginFeil = $('login-feil');
+
+    let gjeldendeEpost = '';
+    let cooldownId = null;
 
     function visLoginFeil(melding) {
       loginFeil.textContent = melding;
       loginFeil.hidden = false;
     }
 
-    loginForm.addEventListener('submit', async (e) => {
+    // Send engangskode. shouldCreateUser:false → admin-verktøyet oppretter aldri
+    // nye kontoer. emailRedirectTo gir magic-link-fallback tilbake til /admin/.
+    async function sendKode(epost) {
+      const { error } = await sb.auth.signInWithOtp({
+        email: epost,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: window.location.origin + '/admin/'
+        }
+      });
+      if (error) throw error;
+    }
+
+    function startCooldown(sek) {
+      let igjen = sek;
+      clearInterval(cooldownId);
+      nyKodeKnapp.disabled = true;
+      nyKodeKnapp.textContent = 'Send ny kode (' + igjen + 's)';
+      cooldownId = setInterval(() => {
+        igjen -= 1;
+        if (igjen <= 0) {
+          clearInterval(cooldownId);
+          nyKodeKnapp.disabled = false;
+          nyKodeKnapp.textContent = 'Send ny kode';
+        } else {
+          nyKodeKnapp.textContent = 'Send ny kode (' + igjen + 's)';
+        }
+      }, 1000);
+    }
+
+    function feilTilTekst(err, kontekst) {
+      const m = (err && err.message) ? err.message : '';
+      if (/not allowed|Signups not allowed|not found/i.test(m)) return 'Denne e-postadressen har ikke tilgang.';
+      if (kontekst === 'verify' && /expired/i.test(m)) return 'Koden er utløpt — be om ny kode.';
+      if (kontekst === 'verify' && /invalid|token/i.test(m)) return 'Feil kode — prøv igjen.';
+      if (/rate|too many|429/i.test(m)) return 'For mange forsøk. Vent litt og prøv igjen.';
+      return kontekst === 'verify' ? 'Verifisering feilet. Prøv igjen.' : 'Kunne ikke sende kode. Prøv igjen.';
+    }
+
+    // Steg 1: send kode
+    stegEpost.addEventListener('submit', async (e) => {
       e.preventDefault();
       loginFeil.hidden = true;
-      loginKnapp.disabled = true;
-      loginKnapp.textContent = 'Logger inn…';
-      const email = $('epost').value.trim();
-      const password = $('passord').value;
+      const epost = epostFelt.value.trim();
+      if (!epost.includes('@')) { visLoginFeil('Skriv inn en gyldig e-postadresse.'); return; }
+      sendKnapp.disabled = true;
+      sendKnapp.textContent = 'Sender …';
       try {
-        const { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) {
-          visLoginFeil('Innlogging feilet. Sjekk e-post og passord.');
-          return;
-        }
+        await sendKode(epost);
+        gjeldendeEpost = epost;
+        $('kode-status').textContent = 'Vi sendte en 6-sifret kode til ' + epost + '. Sjekk e-posten og skriv den inn under.';
+        stegEpost.hidden = true;
+        stegKode.hidden = false;
+        kodeFelt.value = '';
+        kodeFelt.focus();
+        startCooldown(60);
+      } catch (err) {
+        visLoginFeil(feilTilTekst(err, 'send'));
+      } finally {
+        sendKnapp.disabled = false;
+        sendKnapp.textContent = 'Send meg kode';
+      }
+    });
+
+    // Steg 2: verifiser kode
+    stegKode.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginFeil.hidden = true;
+      const token = kodeFelt.value.trim();
+      if (!/^\d{6}$/.test(token)) { visLoginFeil('Skriv inn den 6-sifrede koden.'); return; }
+      verifyKnapp.disabled = true;
+      verifyKnapp.textContent = 'Logger inn …';
+      try {
+        const { error } = await sb.auth.verifyOtp({ email: gjeldendeEpost, token, type: 'email' });
+        if (error) throw error;
+        clearInterval(cooldownId);
         await lastDashboard();
       } catch (err) {
-        visLoginFeil('Noe gikk galt. Prøv igjen.');
+        visLoginFeil(feilTilTekst(err, 'verify'));
       } finally {
-        loginKnapp.disabled = false;
-        loginKnapp.textContent = 'Logg inn';
+        verifyKnapp.disabled = false;
+        verifyKnapp.textContent = 'Logg inn';
       }
+    });
+
+    // Send ny kode
+    nyKodeKnapp.addEventListener('click', async () => {
+      if (nyKodeKnapp.disabled || !gjeldendeEpost) return;
+      loginFeil.hidden = true;
+      try {
+        await sendKode(gjeldendeEpost);
+        $('kode-status').textContent = 'Ny kode sendt til ' + gjeldendeEpost + '.';
+        startCooldown(60);
+      } catch (err) {
+        visLoginFeil(feilTilTekst(err, 'send'));
+      }
+    });
+
+    // Bruk annen e-post → tilbake til steg 1
+    $('annen-epost-knapp').addEventListener('click', () => {
+      clearInterval(cooldownId);
+      loginFeil.hidden = true;
+      kodeFelt.value = '';
+      stegKode.hidden = true;
+      stegEpost.hidden = false;
+      epostFelt.focus();
     });
 
     async function loggUt(melding) {
       try { await sb.auth.signOut(); } catch (_) {}
-      $('passord').value = '';
+      clearInterval(cooldownId);
+      kodeFelt.value = '';
+      stegKode.hidden = true;
+      stegEpost.hidden = false;
       if (melding) visLoginFeil(melding); else loginFeil.hidden = true;
       visSeksjon('login');
     }
@@ -465,8 +620,9 @@
         const res = await fetch(METRICS_URL, {
           method: 'GET',
           headers: {
-            'Authorization': 'Bearer ' + session.access_token,
-            'apikey': SUPABASE_ANON_KEY
+            // Brukerens Supabase-JWT fra OTP-innloggingen. Backendens admin-gate
+            // validerer den mot ADMIN_USER_ID.
+            'Authorization': 'Bearer ' + session.access_token
           }
         });
 
@@ -484,7 +640,7 @@
         renderDashboard(data);
         $('dash-feil').hidden = true;
       } catch (err) {
-        // Vis dashbordet med feilbanner (f.eks. før admin-metrics er deployet i Fase 3).
+        // Vis dashbordet med feilbanner (nett/CORS/backend nede).
         visSeksjon('dash');
         const banner = $('dash-feil');
         banner.textContent = 'Klarte ikke å hente driftstall akkurat nå. Prøv «Oppdater» igjen.';
@@ -497,70 +653,47 @@
     /* ---- Rendering ---- */
     let grafVekst = null, grafSveips = null;
 
+    // Feltnavn matcher EKSAKT det Railway-ruten GET /api/admin/metrics returnerer.
     function renderDashboard(d) {
       d = d || {};
-      const brukere = pick(d, ['brukere'], {});
-      const sveips = pick(d, ['sveips'], {});
-      const soknader = pick(d, ['soknader'], {});
-      const inntekt = pick(d, ['inntekt_estimat', 'inntekt'], {});
-      const konv = pick(d, ['konvertering'], {});
-      const serie = pick(d, ['daglig_serie', 'serie'], []) || [];
+      const brukere = d.brukere || {};
+      const sveips = d.sveips || {};
+      const soknader = d.soknader || {};
+      const inntekt = d.inntekt_estimat || {};
+      const konv = d.konvertering || {};
+      const serie = Array.isArray(d.daglig_serie) ? d.daglig_serie : [];
 
       /* Sist oppdatert */
       const tid = new Date().toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
       $('oppdatert-tid').textContent = 'Sist oppdatert ' + tid;
 
       /* --- Rad 1: KPI --- */
-      const mrr = toNum(pick(inntekt, ['mrr', 'estimert_mrr', 'belop', 'nok'],
-                             typeof inntekt === 'number' ? inntekt : 0));
-      countUp($('kpi-mrr'), mrr, fmtNok);
+      countUp($('kpi-mrr'), toNum(inntekt.estimert_mrr_kr), fmtNok);
+      countUp($('kpi-brukere'), toNum(brukere.total), fmtInt);
+      $('kpi-brukere-delta').textContent = '+' + fmtInt(toNum(brukere.nye_7d));
+      countUp($('kpi-sveips'), toNum(sveips.i_dag_total), fmtInt);
 
-      const aktive = toNum(pick(brukere, ['aktive', 'total', 'totalt', 'antall'],
-                                typeof brukere === 'number' ? brukere : 0));
-      countUp($('kpi-brukere'), aktive, fmtInt);
-
-      const nye7 = toNum(pick(brukere, ['nye_siste_7d', 'nye_7d', 'siste_7_dager', 'vekst_7d', 'delta_7d'], 0));
-      $('kpi-brukere-delta').textContent = '+' + fmtInt(nye7);
-
-      const sveipsIDag = toNum(pick(sveips, ['i_dag', 'idag', 'today', 'total_i_dag', 'total'],
-                                    typeof sveips === 'number' ? sveips : 0));
-      countUp($('kpi-sveips'), sveipsIDag, fmtInt);
-
-      // Send-rate: eksplisitt felt, ellers høyre/(høyre+venstre) i dag, ellers søknader/sveips.
-      let sendRate = toPct(pick(sveips, ['send_rate', 'sendrate', 'hoyre_andel'], null), null);
-      if (sendRate == null) {
-        const h = toNum(pick(sveips, ['hoyre_i_dag', 'hoyre', 'right_i_dag', 'right'], NaN));
-        const v = toNum(pick(sveips, ['venstre_i_dag', 'venstre', 'left_i_dag', 'left'], NaN));
-        if (Number.isFinite(h) && Number.isFinite(v) && (h + v) > 0) sendRate = (h / (h + v)) * 100;
-      }
-      if (sendRate == null) {
-        const sendtIDag = toNum(pick(soknader, ['i_dag', 'sendt_i_dag', 'sendt'], NaN));
-        if (Number.isFinite(sendtIDag) && sveipsIDag > 0) sendRate = (sendtIDag / sveipsIDag) * 100;
-      }
+      const sendRate = toPct(sveips.send_rate, null);
       $('kpi-sendrate').textContent = sendRate == null ? '—' : fmtPct(sendRate);
 
       /* --- Rad 3: mindre kort --- */
-      // Leveringsrate (tillitsanker)
-      let levering = toPct(pick(soknader, ['leveringsrate', 'levering_rate', 'levert_andel'], null), null);
-      if (levering == null) {
-        const levert = toNum(pick(soknader, ['levert', 'antall_levert'], NaN));
-        const sendt = toNum(pick(soknader, ['sendt', 'antall_sendt'], NaN));
-        if (Number.isFinite(levert) && Number.isFinite(sendt) && sendt > 0) levering = (levert / sendt) * 100;
-      }
+      const levering = toPct(soknader.leverings_rate, null);
       $('m-levering').textContent = levering == null ? '—' : fmtPct(levering);
 
-      // Konvertering paywall → kjøp
-      const konvRate = toPct(pick(konv, ['paywall_til_kjop', 'rate', 'paywall_kjop', 'kjop_rate'],
-                                  typeof konv === 'number' ? konv : null), null);
+      const konvRate = toPct(konv.konverterings_rate, null);
       $('m-konvertering').textContent = konvRate == null ? '—' : fmtPct(konvRate);
 
-      // Abonnenter per plan
-      renderPlaner(pick(d, ['abonnenter_per_plan', 'abonnenter', 'planer'],
-                        pick(inntekt, ['abonnenter_per_plan', 'planer'],
-                             pick(brukere, ['abonnenter_per_plan', 'abonnenter'], null))));
+      // Abonnenter per plan — fast rekkefølge, pene navn (alltid alle planene)
+      const pp = inntekt.per_plan || {};
+      renderPlaner([
+        { navn: 'Ukentlig',      antall: toNum(pp.ukentlig) },
+        { navn: 'Månedlig',      antall: toNum(pp.manedlig) },
+        { navn: 'Kvartalsvis',   antall: toNum(pp.kvartalsvis) },
+        { navn: 'Plus (gratis)', antall: toNum(pp.plus_gratis) },
+      ]);
 
       /* --- Rad 2: grafer --- */
-      renderGrafer(serie);
+      renderGrafer(serie, toNum(brukere.total));
     }
 
     function renderPlaner(planer) {
@@ -594,25 +727,22 @@
       }
     }
 
-    function renderGrafer(serie) {
+    function renderGrafer(serie, totalBrukere) {
       serie = Array.isArray(serie) ? serie : [];
       const labels = serie.map((p) => {
-        const dato = pick(p, ['dato', 'dag', 'date'], '');
-        const dd = new Date(dato);
-        return isNaN(dd) ? String(dato) : dd.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' });
+        const dd = new Date(p.dato);
+        return isNaN(dd) ? String(p.dato || '') : dd.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' });
       });
 
-      // Brukervekst: bruk kumulativ hvis tilgjengelig, ellers løpende sum av nye.
-      let kum = 0;
-      const harKum = serie.some((p) => pick(p, ['kumulativ_brukere', 'kum_brukere', 'brukere_totalt', 'totalt'], null) != null);
-      const vekst = serie.map((p) => {
-        if (harKum) return toNum(pick(p, ['kumulativ_brukere', 'kum_brukere', 'brukere_totalt', 'totalt'], 0));
-        kum += toNum(pick(p, ['nye_brukere', 'nye', 'brukere', 'signups'], 0));
-        return kum;
-      });
+      // Brukervekst: kumulativt brukertall gjennom vinduet, forankret slik at
+      // kurven ender på dagens total (baseline = total − sum nye i vinduet).
+      const nye = serie.map((p) => toNum(p.nye_brukere));
+      const sumNye = nye.reduce((a, b) => a + b, 0);
+      let lopende = Math.max(0, toNum(totalBrukere) - sumNye);
+      const vekst = nye.map((n) => (lopende += n));
 
-      const hoyre = serie.map((p) => toNum(pick(p, ['sveips_hoyre', 'hoyre', 'right'], 0)));
-      const venstre = serie.map((p) => toNum(pick(p, ['sveips_venstre', 'venstre', 'left'], 0)));
+      const hoyre = serie.map((p) => toNum(p.hoyre_sveips));
+      const venstre = serie.map((p) => toNum(p.venstre_sveips));
 
       const GRAPHITE = '#1D1D1F', GREEN = '#1D9E75', GREY = '#C7C7CC', TXT = '#86868B', GRID = 'rgba(0,0,0,.06)';
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -667,9 +797,12 @@
     (async function init() {
       try {
         const { data: { session } } = await sb.auth.getSession();
-        if (session) await lastDashboard();
-        else visSeksjon('login');
+        if (session) { await lastDashboard(); return; }
+        // Ingen sesjon → vis innlogging, med ev. OAuth-feil fra redirect.
+        if (oauthFeilmelding) visLoginFeil(oauthFeilmelding);
+        visSeksjon('login');
       } catch (_) {
+        if (oauthFeilmelding) visLoginFeil(oauthFeilmelding);
         visSeksjon('login');
       }
     })();
